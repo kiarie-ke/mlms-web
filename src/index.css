@@ -1,0 +1,31 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html { @apply scroll-smooth; }
+  body { @apply bg-offwhite font-sans text-ink antialiased; }
+  h1, h2, h3, h4 { @apply font-display; }
+  button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
+  :focus-visible { @apply outline-none ring-2 ring-brand ring-offset-2; }
+}
+@layer components {
+  .btn { @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition duration-150 active:scale-[.98] disabled:cursor-not-allowed disabled:opacity-50; }
+  .btn-primary { @apply btn bg-brand text-white shadow-sm hover:bg-brand-strong hover:shadow-md; }
+  .btn-ghost { @apply btn border border-line bg-white text-ink shadow-sm hover:border-slate-300 hover:bg-slate-50; }
+  .card { @apply rounded-2xl border border-line bg-white p-5 shadow-sm sm:p-6; }
+  .input { @apply w-full rounded-xl border border-line bg-white px-3.5 py-2.5 text-sm text-ink outline-none transition placeholder:text-slate-400 focus:border-brand focus:ring-2 focus:ring-brand/15; }
+  .label { @apply mb-1.5 block text-xs font-semibold text-ink-soft; }
+  .th { @apply whitespace-nowrap px-4 py-3.5 text-left text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500 sm:px-5; }
+  .td { @apply px-4 py-4 text-sm text-slate-700 sm:px-5; }
+}
+
+@media print {
+  body * { visibility: hidden; }
+  #cert, #cert * { visibility: visible; }
+  #cert { position: fixed; inset: 0; margin: auto; width: 80%; height: fit-content; }
+}
+
+@media (display-mode: standalone) {
+  body { padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
+}
