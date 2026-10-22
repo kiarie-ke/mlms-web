@@ -3,6 +3,10 @@
     {
       "source": "/api/:path*",
       "destination": "https://mlms-api-hlfl.onrender.com/api/:path*"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ],
   "headers": [
