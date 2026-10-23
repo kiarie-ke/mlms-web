@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { AlertCircle, BookOpen, CalendarCheck, ClipboardList, GraduationCap, Layers, UserPlus, Users, Wallet } from 'lucide-react';
 import { api } from '../lib/api.js';
 
@@ -59,16 +60,48 @@ export function useFetch(path) {
 }
 
 export function Modal({ title, onClose, children, wide }) {
-  return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-navy/60 p-4" onClick={onClose}>
-      <div className={`max-h-[92vh] w-full overflow-y-auto rounded-lg bg-white p-6 shadow-lg ${wide ? 'max-w-3xl' : 'max-w-md'}`} onClick={(e) => e.stopPropagation()}>
-        <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-lg font-semibold">{title}</h3>
-          <button onClick={onClose} aria-label="Close" className="text-ink-soft">✕</button>
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') onClose?.();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [onClose]);
+
+  if (typeof document === 'undefined') return null;
+
+  return createPortal(
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-navy/60 p-3 backdrop-blur-sm sm:p-6"
+      onClick={onClose}
+    >
+      <div
+        className={`relative my-auto w-full max-h-[90vh] overflow-y-auto rounded-2xl bg-white p-5 shadow-2xl transition-all sm:p-6 ${
+          wide ? 'max-w-3xl' : 'max-w-md'
+        }`}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="mb-4 flex items-center justify-between border-b border-line/70 pb-3">
+          <h3 className="font-display text-lg font-bold text-ink">{title}</h3>
+          <button
+            onClick={onClose}
+            aria-label="Close modal"
+            className="grid h-8 w-8 place-items-center rounded-xl text-ink-soft transition hover:bg-slate-100 hover:text-ink active:scale-95"
+          >
+            ✕
+          </button>
         </div>
         {children}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
