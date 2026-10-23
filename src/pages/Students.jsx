@@ -37,7 +37,7 @@ export default function Students() {
       if (!body.cohortId) delete body.cohortId;
       if (!body.phone) delete body.phone;
       const s = await api.post('/students', body);
-      setMsg({ text: s.temporaryPassword ? `Created. Temporary password (share it once): ${s.temporaryPassword}` : 'Created.', error: false });
+      setMsg({ text: s.temporaryPassword ? `Created. Default password: ${s.temporaryPassword} (the student should change it in their portal)` : 'Created.', error: false });
       setForm(empty);
       reload();
     } catch (err) {

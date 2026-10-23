@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { ArrowRight, BookOpen, Code2, GraduationCap, Sparkles } from 'lucide-react';
 import { useAuth } from '../lib/auth.jsx';
 import { Field } from '../components/ui.jsx';
+import { Link } from 'react-router-dom';
+import packageJson from '../../package.json';
 
 export default function Login() {
   const { login } = useAuth();
@@ -62,7 +64,10 @@ export default function Login() {
           </div>
         </div>
 
-        <p className="relative text-xs text-white/80">Learn something today. Build something tomorrow.</p>
+        <div className="relative flex items-center justify-between gap-3 text-xs text-white/80">
+          <span>Learn something today. Build something tomorrow.</span>
+          <span className="shrink-0 text-white/60">v{packageJson.version}</span>
+        </div>
       </aside>
 
       <main className="flex min-h-screen flex-col px-6 pt-6 pb-6 sm:px-12 md:h-screen md:min-h-0 md:justify-center md:overflow-y-auto md:px-14 md:py-6 xl:px-20">
@@ -85,7 +90,10 @@ export default function Login() {
           <form onSubmit={submit} className="space-y-1 [&_input]:text-base [&_label]:text-sm">
             <Field label="Email address" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoFocus autoComplete="username" placeholder="you@example.com" />
             <Field label="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required autoComplete="current-password" placeholder="Enter your password" />
-            <p className="mb-4 -mt-1 text-right text-xs text-ink-soft">Need help signing in? Contact your administrator to reset your password.</p>
+            <p className="mb-4 -mt-1 flex items-center justify-between text-xs text-ink-soft">
+              <span>Need help signing in?</span>
+              <Link to="/reset-password" className="text-brand">Forgot your password?</Link>
+            </p>
             {error && <p role="alert" className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
             <button className="btn-primary mt-2 min-h-[44px] w-full justify-center gap-2 px-5 py-3" disabled={busy}>
               <span>{busy ? 'Signing in...' : 'Sign in'}</span>
@@ -99,7 +107,10 @@ export default function Login() {
               Apply to join
             </a>
           </div>
-          <p className="mt-8 text-center text-xs text-slate-500">A supportive space to learn, practice, and grow.</p>
+          <div className="mt-8 flex items-center justify-center gap-2 text-xs text-slate-500">
+            <span>A supportive space to learn, practice, and grow.</span>
+            <span aria-label={`Version ${packageJson.version}`} className="text-slate-400">· v{packageJson.version}</span>
+          </div>
         </div>
       </main>
     </div>

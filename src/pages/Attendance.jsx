@@ -11,12 +11,18 @@ function Student() {
   return (
     <>
       <PageHeader title="My attendance" />
-      <div className="card mb-4 inline-block"><p className="text-sm text-ink-soft">Overall</p><p className="font-display text-2xl font-bold text-brand">{data.percent}%</p></div>
-      <Table rows={data.records} columns={[
-        { header: 'Class', cell: (r) => r.session.title },
-        { header: 'Date', cell: (r) => new Date(r.session.date).toLocaleDateString() },
-        { header: 'Status', cell: (r) => <Badge>{r.status}</Badge> },
-      ]} />
+      <div className="card mb-4 inline-block">
+        <p className="text-sm text-ink-soft">Overall</p>
+        <p className="font-display text-2xl font-bold text-brand">{data.percent}%</p>
+      </div>
+      <Table
+        rows={data.records}
+        columns={[
+          { header: 'Class', cell: (r) => r.session.title },
+          { header: 'Date', cell: (r) => new Date(r.session.date).toLocaleDateString() },
+          { header: 'Status', cell: (r) => <Badge>{r.status}</Badge> },
+        ]}
+      />
     </>
   );
 }
@@ -42,33 +48,85 @@ function Staff() {
     setMarking(null);
     sessions.reload();
   };
-  const roster = marking ? (students.data ?? []).filter((s) => s.cohort?.id === marking.cohortId) : [];
+  const roster = marking
+    ? (students.data ?? []).filter((s) => s.cohort?.id === marking.cohortId)
+    : [];
 
   if (!sessions.data) return <Loading error={sessions.error} />;
   return (
     <>
-      <PageHeader title="Attendance"><button className="btn-primary" onClick={() => setCreate(true)}>New class session</button></PageHeader>
-      <Table rows={sessions.data} columns={[
-        { header: 'Class', cell: (s) => s.title },
-        { header: 'Cohort', cell: (s) => s.cohort.name },
-        { header: 'Date', cell: (s) => new Date(s.date).toLocaleDateString() },
-        { header: 'Marked', cell: (s) => s._count.records },
-        { header: '', cell: (s) => <button className="btn-ghost" onClick={() => {
-          const roster = (students.data ?? []).filter((x) => x.cohort?.id === s.cohortId);
-          const savedMarks = new Map(s.records.map((record) => [record.studentId, record.status]));
-          setMarks(Object.fromEntries(roster.map((student) => [student.id, savedMarks.get(student.id) ?? 'PRESENT'])));
-          setMarking(s);
-        }}>Mark</button> },
-      ]} />
+      <PageHeader title="Attendance">
+        <button className="btn-primary" onClick={() => setCreate(true)}>
+          New class session
+        </button>
+      </PageHeader>
+      <Table
+        rows={sessions.data}
+        columns={[
+          { header: 'Class', cell: (s) => s.title },
+          { header: 'Cohort', cell: (s) => s.cohort.name },
+          { header: 'Date', cell: (s) => new Date(s.date).toLocaleDateString() },
+          { header: 'Marked', cell: (s) => s._count.records },
+          { header: 'Present (weekdays)', cell: (s) => s.presentCount ?? 'Weekend — excluded' },
+          {
+            header: '',
+            cell: (s) => (
+              <button
+                className="btn-ghost"
+                onClick={() => {
+                  const roster = (students.data ?? []).filter((x) => x.cohort?.id === s.cohortId);
+                  const savedMarks = new Map(
+                    s.records.map((record) => [record.studentId, record.status]),
+                  );
+                  setMarks(
+                    Object.fromEntries(
+                      roster.map((student) => [
+                        student.id,
+                        savedMarks.get(student.id) ?? 'PRESENT',
+                      ]),
+                    ),
+                  );
+                  setMarking(s);
+                }}
+              >
+                Mark
+              </button>
+            ),
+          },
+        ]}
+      />
       {create && (
         <Modal title="New class session" onClose={() => setCreate(false)}>
           <form onSubmit={createSession}>
-            <div className="mb-3"><label className="label">Cohort</label>
-              <select className="input" required value={form.cohortId} onChange={(e) => setForm({ ...form, cohortId: e.target.value })}>
-                <option value="">Select…</option>{cohorts.data?.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select></div>
-            <Field label="Title" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required />
-            <Field label="Date" type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} required />
+            <div className="mb-3">
+              <label className="label">Cohort</label>
+              <select
+                className="input"
+                required
+                value={form.cohortId}
+                onChange={(e) => setForm({ ...form, cohortId: e.target.value })}
+              >
+                <option value="">Select…</option>
+                {cohorts.data?.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <Field
+              label="Title"
+              value={form.title}
+              onChange={(e) => setForm({ ...form, title: e.target.value })}
+              required
+            />
+            <Field
+              label="Date"
+              type="date"
+              value={form.date}
+              onChange={(e) => setForm({ ...form, date: e.target.value })}
+              required
+            />
             <button className="btn-primary w-full">Create</button>
           </form>
         </Modal>
@@ -79,14 +137,22 @@ function Staff() {
             {roster.map((s) => (
               <div key={s.id} className="flex items-center justify-between gap-2">
                 <span className="text-sm">{s.user.name}</span>
-                <select className="input w-32" value={marks[s.id] ?? 'PRESENT'} onChange={(e) => setMarks({ ...marks, [s.id]: e.target.value })}>
-                  {STATUSES.map((x) => <option key={x}>{x}</option>)}
+                <select
+                  className="input w-32"
+                  value={marks[s.id] ?? 'PRESENT'}
+                  onChange={(e) => setMarks({ ...marks, [s.id]: e.target.value })}
+                >
+                  {STATUSES.map((x) => (
+                    <option key={x}>{x}</option>
+                  ))}
                 </select>
               </div>
             ))}
             {!roster.length && <p className="text-sm text-ink-soft">No students in this cohort.</p>}
           </div>
-          <button className="btn-primary w-full" onClick={saveMarks} disabled={!roster.length}>Save</button>
+          <button className="btn-primary w-full" onClick={saveMarks} disabled={!roster.length}>
+            Save
+          </button>
         </Modal>
       )}
     </>

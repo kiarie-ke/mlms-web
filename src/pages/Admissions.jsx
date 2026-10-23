@@ -13,7 +13,7 @@ export default function Admissions() {
   const approve = async () => {
     try {
       const r = await api.post(`/admissions/${approving.id}/approve`, cohortId ? { cohortId } : {});
-      setMsg({ text: `Approved. Student account created. Temporary password (share it once): ${r.temporaryPassword}`, error: false });
+      setMsg({ text: `Approved. Student account created. Default password: ${r.temporaryPassword} (the student should change it in their portal)`, error: false });
       reload();
     } catch (err) {
       setMsg({ text: errMsg(err), error: true });

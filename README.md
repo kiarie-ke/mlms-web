@@ -26,3 +26,11 @@ npm run preview
 ```
 
 The production files are generated in `dist/`. Configure the production web server to serve these files and proxy `/api` requests to the API origin. Keep the web app and API on the intended trusted origins because authentication uses secure, HTTP-only cookies.
+
+## Tests
+
+Run the login and role-route smoke tests with:
+
+```sh
+npm test
+```

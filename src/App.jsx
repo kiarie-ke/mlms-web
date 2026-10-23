@@ -46,16 +46,28 @@ export default function App() {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/reset-password" element={<pages.resetPassword />} />
+        <Route path="/reset-password/:token" element={<pages.resetPassword />} />
         <Route path="/apply" element={<Apply />} />
         <Route path="/verify/:code" element={<Verify />} />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     );
+  if (user.mustChangePassword) {
+    return (
+      <Suspense fallback={<AppSkeleton />}>
+        <Routes>
+          <Route path="/account" element={<Account />} />
+          <Route path="*" element={<Navigate to="/account" replace />} />
+        </Routes>
+      </Suspense>
+    );
+  }
   return (
     <Suspense fallback={<AppSkeleton />}>
       <Routes>
         <Route path="/verify/:code" element={<Verify />} />
         <Route path="/reset-password" element={<pages.resetPassword />} />
+        <Route path="/reset-password/:token" element={<pages.resetPassword />} />
         <Route element={<Layout />}>
           {menus[user.role].map(([k]) => {
             const Page = pages[k];

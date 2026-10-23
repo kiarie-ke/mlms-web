@@ -1,22 +1,25 @@
 import { useEffect, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
-import { Bell, Download, LogOut, Menu, X } from 'lucide-react';
+import { Bell, Download, LogOut, Menu, MessageSquare, X } from 'lucide-react';
 import { useAuth } from '../lib/auth.jsx';
 import { navItems } from '../lib/nav.js';
 import { api } from '../lib/api.js';
+import Avatar from './Avatar.jsx';
+import packageJson from '../../package.json';
 
 export default function Layout() {
   const { user, logout } = useAuth();
   const location = useLocation();
   const [unread, setUnread] = useState(0);
+  const [unreadMessages, setUnreadMessages] = useState(0);
   const [open, setOpen] = useState(false);
   const [installEvt, setInstallEvt] = useState(null);
   const items = navItems(user.role);
   const currentPage = items.find(({ to }) => (
     to === '/' ? location.pathname === '/' : location.pathname === to || location.pathname.startsWith(`${to}/`)
   ));
-  const initials = user.name.split(/\s+/).map((part) => part[0]).slice(0, 2).join('').toUpperCase();
   const hasNotifications = items.some(({ key }) => key === 'notifications');
+  const hasMessages = items.some(({ key }) => key === 'messages');
   useEffect(() => {
     const h = (e) => { e.preventDefault(); setInstallEvt(e); };
     window.addEventListener('beforeinstallprompt', h);
@@ -24,10 +27,26 @@ export default function Layout() {
   }, []);
   const install = async () => { installEvt.prompt(); await installEvt.userChoice; setInstallEvt(null); };
   useEffect(() => {
-    const load = () => api.get('/notifications/count').then((r) => setUnread(r.unread)).catch(() => {});
+    const loadUnreadMessages = () => {
+      api.get('/messages/unread-count')
+        .then((r) => setUnreadMessages(r.unread))
+        .catch((error) => console.error('Could not refresh unread message count', error));
+    };
+    const load = () => {
+      api.get('/notifications/count').then((r) => setUnread(r.unread)).catch(() => {});
+      loadUnreadMessages();
+    };
+    const refresh = () => { if (!document.hidden) load(); };
+    const onMessagesRead = () => loadUnreadMessages();
     load();
-    const t = setInterval(load, 30000);
-    return () => clearInterval(t);
+    const t = setInterval(refresh, 10000);
+    window.addEventListener('messages-read', onMessagesRead);
+    document.addEventListener('visibilitychange', refresh);
+    return () => {
+      clearInterval(t);
+      window.removeEventListener('messages-read', onMessagesRead);
+      document.removeEventListener('visibilitychange', refresh);
+    };
   }, []);
   return (
     <div className="flex min-h-screen bg-offwhite">
@@ -63,18 +82,23 @@ export default function Layout() {
             >
               <Icon size={18} strokeWidth={1.8} />
               <span className="flex-1">{label}</span>
+              {key === 'messages' && unreadMessages > 0 && (
+                <span className="rounded-full bg-amber px-2 py-0.5 text-[10px] font-bold text-navy">
+                  {unreadMessages > 99 ? '99+' : unreadMessages}
+                </span>
+              )}
               {key === 'notifications' && unread > 0 && <span className="rounded-full bg-amber px-2 py-0.5 text-[10px] font-bold text-navy">{unread}</span>}
             </NavLink>
           ))}
         </nav>
         <div className="m-3 rounded-2xl border border-white/10 bg-white/[0.04] p-3">
-          <Link to="/account" onClick={() => setOpen(false)} className="flex min-w-0 items-center gap-3 rounded-xl p-2 transition hover:bg-white/[0.06]">
-            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-cyan/15 text-sm font-bold text-cyan">{initials}</span>
-            <span className="min-w-0 flex-1">
+          <div className="flex min-w-0 items-center gap-3 rounded-xl p-2">
+            <Avatar user={user} size="h-10 w-10" className="text-sm" />
+            <Link to="/account" onClick={() => setOpen(false)} className="min-w-0 flex-1 rounded-lg hover:opacity-80">
               <span className="block truncate text-sm font-semibold text-white">{user.name}</span>
               <span className="mt-0.5 block text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">{user.role}</span>
-            </span>
-          </Link>
+            </Link>
+          </div>
           {installEvt && (
             <button onClick={install} className="mt-2 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-cyan transition hover:bg-white/[0.06] hover:text-white">
               <Download size={16} /> Install app
@@ -84,6 +108,9 @@ export default function Layout() {
             <LogOut size={15} /> Sign out
           </button>
         </div>
+        <p className="px-6 pb-4 text-center text-[10px] font-medium tracking-wide text-slate-500">
+          MODARA LMS · v{packageJson.version}
+        </p>
       </aside>
       <main className="min-w-0 flex-1">
         <header className="sticky top-0 z-20 flex h-[4.5rem] items-center justify-between border-b border-line/80 bg-white/90 px-5 backdrop-blur-xl sm:px-7 lg:px-10">
@@ -98,13 +125,27 @@ export default function Layout() {
                 {unread > 0 && <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white" />}
               </Link>
             )}
-            <Link to="/account" className="flex items-center gap-2 rounded-xl p-1.5 pr-2 transition hover:bg-slate-100">
-              <span className="grid h-9 w-9 place-items-center rounded-full bg-brand/10 text-xs font-bold text-brand">{initials}</span>
-              <span className="hidden text-left sm:block">
+            {hasMessages && (
+              <Link
+                to="/messages"
+                aria-label={unreadMessages ? `${unreadMessages} unread messages` : 'Messages'}
+                className="relative grid h-10 w-10 place-items-center rounded-xl border border-line bg-white text-ink-soft transition hover:border-brand/30 hover:text-brand"
+              >
+                <MessageSquare size={18} />
+                {unreadMessages > 0 && (
+                  <span className="absolute -right-1 -top-1 min-w-4 rounded-full bg-amber px-1 text-center text-[10px] font-bold leading-4 text-navy">
+                    {unreadMessages > 99 ? '99+' : unreadMessages}
+                  </span>
+                )}
+              </Link>
+            )}
+            <div className="flex items-center gap-2 rounded-xl p-1.5 pr-2">
+              <Avatar user={user} size="h-9 w-9" className="text-xs" />
+              <Link to="/account" className="hidden rounded-lg text-left hover:opacity-80 sm:block">
                 <span className="block max-w-36 truncate text-xs font-semibold text-ink">{user.name}</span>
                 <span className="block text-[10px] text-ink-soft">My account</span>
-              </span>
-            </Link>
+              </Link>
+            </div>
           </div>
         </header>
         <div className="mx-auto w-full max-w-[1440px] p-5 sm:p-7 lg:p-10">
