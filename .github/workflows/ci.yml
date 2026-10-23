@@ -1,4 +1,4 @@
-name: Web CI
+name: Web CI/CD
 
 on:
   pull_request:
@@ -6,7 +6,8 @@ on:
     branches: [main]
 
 jobs:
-  web:
+  test:
+    name: 1. Run Tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -17,5 +18,35 @@ jobs:
           cache-dependency-path: package-lock.json
       - run: npm ci
       - run: npm test
+
+  build:
+    name: 2. Build Production Bundle
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - run: npm ci
       - run: npm run build
 
+  deploy:
+    name: 3. Deploy to Vercel
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Vercel Deploy Hook
+        env:
+          HOOK_URL: ${{ secrets.VERCEL_DEPLOY_HOOK }}
+        run: |
+          if [ -n "$HOOK_URL" ]; then
+            echo "Triggering Vercel deployment hook..."
+            curl -f -X POST "$HOOK_URL"
+            echo "Deployment triggered successfully!"
+          else
+            echo "VERCEL_DEPLOY_HOOK secret not set yet in GitHub repository secrets. Skipping deploy hook."
+          fi
