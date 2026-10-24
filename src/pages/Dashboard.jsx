@@ -3,12 +3,10 @@ import { Loading, PageHeader, Stat, useFetch } from '../components/ui.jsx';
 import { fmtDate, fmtDateTime } from '../lib/format.js';
 import { Link } from 'react-router-dom';
 import { ArrowRight, ArrowUpRight, CalendarDays, ClipboardList, Megaphone } from 'lucide-react';
-import TeachingCalendar from '../components/TeachingCalendar.jsx';
 
 export default function Dashboard() {
   const { user } = useAuth();
   const { data, error } = useFetch('/dashboard');
-  const schedule = useFetch('/classes');
   const news = useFetch('/announcements');
   const firstName = user.name.split(' ')[0];
   const today = new Intl.DateTimeFormat(undefined, { weekday: 'long', month: 'long', day: 'numeric' }).format(new Date());
@@ -34,13 +32,6 @@ export default function Dashboard() {
       </section>
       {!data ? <Loading error={error} /> : (
         <>
-          <section className="mb-8">
-            <div className="mb-4 flex items-center justify-between gap-3">
-              <div><h2 className="font-display text-lg font-bold text-ink">Teaching calendar</h2><p className="mt-1 text-xs text-ink-soft">Lessons and classes in schedule order</p></div>
-              <span className="grid h-10 w-10 place-items-center rounded-xl bg-brand/10 text-brand"><CalendarDays size={19} /></span>
-            </div>
-            <TeachingCalendar events={schedule.data} error={schedule.error} />
-          </section>
           <div className="mb-3 flex items-center justify-between">
             <h2 className="font-display text-lg font-bold text-ink">At a glance</h2>
             <span className="text-xs font-medium text-ink-soft">Your current overview</span>
@@ -101,24 +92,44 @@ export default function Dashboard() {
               </div>
             </section>
           )}
-          <section className="mt-8">
-            <div className="mb-4 flex items-center justify-between gap-3">
-              <div><h2 className="font-display text-lg font-bold text-ink">Latest announcements</h2><p className="mt-1 text-xs text-ink-soft">Updates from your school</p></div>
-              <span className="grid h-10 w-10 place-items-center rounded-xl bg-amber/15 text-[#b45309]"><Megaphone size={19} /></span>
-            </div>
-            <div className="space-y-3">
-              {news.data?.slice(0, 3).map((a) => (
-                <article key={a.id} className="card transition hover:border-brand/25 hover:shadow-md">
-                  <div className="flex items-start gap-3">
-                    <span className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-brand/10 text-brand"><Megaphone size={17} /></span>
-                    <div><p className="font-semibold text-ink">{a.title}</p><p className="mt-1.5 line-clamp-3 text-sm leading-6 text-ink-soft">{a.body}</p></div>
+          <div className="mt-8 grid gap-6 xl:grid-cols-2">
+            <section>
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <div><h2 className="font-display text-lg font-bold text-ink">Upcoming classes</h2><p className="mt-1 text-xs text-ink-soft">Your next scheduled sessions</p></div>
+                <span className="grid h-10 w-10 place-items-center rounded-xl bg-brand/10 text-brand"><CalendarDays size={19} /></span>
+              </div>
+              <div className="space-y-3">
+                {data.upcoming.map((c) => (
+                  <div key={c.id} className="card flex items-center justify-between gap-4 transition hover:border-brand/25 hover:shadow-md">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-cyan/10 text-cyan"><CalendarDays size={19} /></span>
+                      <div className="min-w-0"><p className="truncate font-semibold text-ink">{c.title}</p><p className="mt-1 text-xs text-ink-soft">{fmtDateTime(c.date)}</p></div>
+                    </div>
+                    {c.meetingUrl && <a className="btn-primary shrink-0" href={c.meetingUrl} target="_blank" rel="noreferrer noopener">Join <ArrowUpRight size={15} /></a>}
                   </div>
-                </article>
-              ))}
-              {news.data && !news.data.length && <div className="card flex items-center gap-3 text-sm text-ink-soft"><Megaphone size={18} className="text-slate-400" />Nothing new.</div>}
-              {!news.data && news.error && <Loading error={news.error} />}
-            </div>
-          </section>
+                ))}
+                {!data.upcoming.length && <div className="card flex items-center gap-3 text-sm text-ink-soft"><CalendarDays size={18} className="text-slate-400" />No upcoming classes.</div>}
+              </div>
+            </section>
+            <section>
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <div><h2 className="font-display text-lg font-bold text-ink">Latest announcements</h2><p className="mt-1 text-xs text-ink-soft">Updates from your school</p></div>
+                <span className="grid h-10 w-10 place-items-center rounded-xl bg-amber/15 text-[#b45309]"><Megaphone size={19} /></span>
+              </div>
+              <div className="space-y-3">
+                {news.data?.slice(0, 3).map((a) => (
+                  <article key={a.id} className="card transition hover:border-brand/25 hover:shadow-md">
+                    <div className="flex items-start gap-3">
+                      <span className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-brand/10 text-brand"><Megaphone size={17} /></span>
+                      <div><p className="font-semibold text-ink">{a.title}</p><p className="mt-1.5 line-clamp-3 text-sm leading-6 text-ink-soft">{a.body}</p></div>
+                    </div>
+                  </article>
+                ))}
+                {news.data && !news.data.length && <div className="card flex items-center gap-3 text-sm text-ink-soft"><Megaphone size={18} className="text-slate-400" />Nothing new.</div>}
+                {!news.data && news.error && <Loading error={news.error} />}
+              </div>
+            </section>
+          </div>
         </>
       )}
     </>
