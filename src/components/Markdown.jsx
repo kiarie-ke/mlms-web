@@ -6,7 +6,7 @@ import 'highlight.js/styles/github-dark.css';
 // Raw HTML in notes is not rendered (react-markdown default), so content cannot inject scripts.
 const components = {
   a: ({ node, ...p }) => <a {...p} target="_blank" rel="noreferrer noopener" className="text-brand underline" />,
-  img: ({ node, ...p }) => <img {...p} loading="lazy" className="my-3 max-w-full rounded" />,
+  img: ({ node, ...p }) => <img {...p} loading="lazy" crossOrigin="anonymous" className="my-3 max-w-full rounded" />,
   h1: ({ node, ...p }) => <h2 {...p} className="mb-3 mt-6 font-display text-2xl font-bold" />,
   h2: ({ node, ...p }) => <h2 {...p} className="mb-2 mt-6 font-display text-xl font-bold" />,
   h3: ({ node, ...p }) => <h3 {...p} className="mb-2 mt-4 font-display text-lg font-semibold" />,

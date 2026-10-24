@@ -63,6 +63,7 @@ export default function Avatar({ user, size = 'h-12 w-12', className = '', onlin
               key={user.profilePhoto}
               src={user.profilePhoto}
               alt=""
+              crossOrigin="anonymous"
               className="h-full w-full object-cover"
               onError={() => setFailedSource(user.profilePhoto)}
             />
@@ -95,6 +96,7 @@ export default function Avatar({ user, size = 'h-12 w-12', className = '', onlin
                   <img
                     src={profile.profilePhoto}
                     alt={`${profile.name} profile`}
+                    crossOrigin="anonymous"
                     className="h-full w-full object-cover"
                     onError={() => setProfilePhotoFailed(true)}
                   />
