@@ -10,6 +10,7 @@ import packageJson from '../../package.json';
 export default function Layout() {
   const { user, logout } = useAuth();
   const location = useLocation();
+  const isMessagesPage = location.pathname === '/messages';
   const [unread, setUnread] = useState(0);
   const [unreadMessages, setUnreadMessages] = useState(0);
   const [open, setOpen] = useState(false);
@@ -112,8 +113,8 @@ export default function Layout() {
           MODARA LMS · v{packageJson.version}
         </p>
       </aside>
-      <main className="min-w-0 flex-1">
-        <header className="sticky top-0 z-20 flex h-[4.5rem] items-center justify-between border-b border-line/80 bg-white/90 px-5 backdrop-blur-xl sm:px-7 lg:px-10">
+      <main className={`min-w-0 flex-1 ${isMessagesPage ? 'md:flex md:h-screen md:min-h-0 md:flex-col md:overflow-hidden' : ''}`}>
+        <header className={`sticky top-0 z-20 flex h-[4.5rem] items-center justify-between border-b border-line/80 bg-white/90 px-5 backdrop-blur-xl sm:px-7 lg:px-10 ${isMessagesPage ? 'md:shrink-0' : ''}`}>
           <div className="min-w-0 pl-12 md:pl-0">
             <p className="truncate text-[10px] font-bold uppercase tracking-[0.18em] text-ink-soft">MODARA / {currentPage?.label ?? 'Workspace'}</p>
             <p className="mt-0.5 text-xs text-slate-400">Learning and teaching workspace</p>
@@ -148,7 +149,7 @@ export default function Layout() {
             </div>
           </div>
         </header>
-        <div className="mx-auto w-full max-w-[1440px] p-5 sm:p-7 lg:p-10">
+        <div className={`mx-auto w-full max-w-[1440px] p-5 sm:p-7 lg:p-10 ${isMessagesPage ? 'md:flex md:min-h-0 md:flex-1 md:flex-col md:overflow-hidden' : ''}`}>
           <Outlet />
         </div>
       </main>
