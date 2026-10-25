@@ -1,6 +1,7 @@
 import { api } from '../lib/api.js';
 import { Loading, PageHeader, useFetch } from '../components/ui.jsx';
 import { fmtDateTime } from '../lib/format.js';
+import PushNotificationSettings from '../components/PushNotificationSettings.jsx';
 
 export default function Notifications() {
   const { data, error, reload } = useFetch('/notifications');
@@ -10,6 +11,7 @@ export default function Notifications() {
   return (
     <>
       <PageHeader title="Notifications">{data.some((n) => !n.read) && <button className="btn-ghost" onClick={all}>Mark all read</button>}</PageHeader>
+      <PushNotificationSettings />
       <div className="space-y-2">
         {data.map((n) => (
           <button key={n.id} onClick={() => mark(n)} className={`card block w-full text-left ${n.read ? 'opacity-70' : 'border-l-4 border-l-brand'}`}>

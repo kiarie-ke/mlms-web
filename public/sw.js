@@ -8,6 +8,33 @@ self.addEventListener('install', (e) => {
 self.addEventListener('activate', (e) => {
   e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k !== CACHE).map((k) => caches.delete(k)))).then(() => self.clients.claim()));
 });
+self.addEventListener('push', (e) => {
+  let payload = {};
+  try {
+    payload = e.data?.json() ?? {};
+  } catch {
+    payload = {};
+  }
+  e.waitUntil(self.registration.showNotification(payload.title || 'MODARA LMS', {
+    body: payload.body || 'You have a new LMS notification.',
+    icon: '/logo.png',
+    badge: '/logo.png',
+    data: { url: payload.url || '/notifications' },
+  }));
+});
+self.addEventListener('notificationclick', (e) => {
+  e.notification.close();
+  const target = new URL(e.notification.data?.url || '/notifications', self.location.origin);
+  const url = target.origin === self.location.origin ? target.href : new URL('/notifications', self.location.origin).href;
+  e.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(async (windows) => {
+    const existing = windows.find((client) => client.url.startsWith(self.location.origin));
+    if (existing) {
+      await existing.navigate(url);
+      return existing.focus();
+    }
+    return self.clients.openWindow(url);
+  }));
+});
 self.addEventListener('fetch', (e) => {
   const req = e.request;
   const url = new URL(req.url);
