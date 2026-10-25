@@ -14,7 +14,7 @@ const paths = { dashboard: '/' };
 // [key, label] per role, mirroring the original portals.
 export const menus = {
   ADMIN: [
-    ['dashboard', 'Dashboard'], ['calendar', 'Calendar'], ['notifications', 'Notifications'], ['students', 'Students'], ['admissions', 'Admissions'], ['cohorts', 'Courses & Cohorts'],
+    ['dashboard', 'Dashboard'], ['calendar', 'Calendar'], ['students', 'Students'], ['admissions', 'Admissions'], ['cohorts', 'Courses & Cohorts'],
     ['attendance', 'Attendance'], ['fees', 'Fees & Payments'], ['financials', 'Financials'], ['instructors', 'Instructors'],
     ['courses', 'Learning Content'], ['assignments', 'Assignments'], ['classes', 'Online Classes'], ['announcements', 'Announcements'],
     ['messages', 'Messages'], ['certification', 'Certification'], ['reports', 'Reports'], ['admin', 'Administration'],
