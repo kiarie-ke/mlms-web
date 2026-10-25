@@ -20,7 +20,7 @@ export const menus = {
     ['messages', 'Messages'], ['certification', 'Certification'], ['reports', 'Reports'], ['admin', 'Administration'],
   ],
   STUDENT: [
-    ['dashboard', 'Dashboard'], ['learning', 'My Learning'], ['materials', 'Learning Materials'], ['playground', 'Code Playground'],
+    ['dashboard', 'Dashboard'], ['learning', 'Learning Notes'], ['materials', 'Learning Materials'], ['playground', 'Code Playground'],
     ['assignments', 'Assignments'], ['quizzes', 'Quizzes'], ['grades', 'Grades'], ['attendance', 'Attendance'], ['fees', 'My Fees'],
     ['classes', 'Online Classes'], ['announcements', 'Announcements'], ['messages', 'Private Chat'], ['discussions', 'Group Discussion'],
     ['notifications', 'Notifications'], ['certification', 'Certification'],

@@ -3,6 +3,7 @@ import { useAuth } from '../lib/auth.jsx';
 import { api } from '../lib/api.js';
 import { Field, Loading, Modal, Notice, PageHeader, Select, Table, TextArea, useFetch } from '../components/ui.jsx';
 import { errMsg, fmtDate } from '../lib/format.js';
+import PdfPreview from '../components/PdfPreview.jsx';
 
 export default function Materials() {
   const { user } = useAuth();
@@ -11,6 +12,7 @@ export default function Materials() {
   const courses = useFetch(staff ? '/courses' : null);
   const [open, setOpen] = useState(false);
   const [msg, setMsg] = useState('');
+  const [preview, setPreview] = useState(null);
 
   const upload = async (e) => {
     e.preventDefault();
@@ -36,9 +38,14 @@ export default function Materials() {
         { header: 'Added', cell: (m) => fmtDate(m.createdAt) },
         { header: 'Open', cell: (m) => m.url
           ? <a className="text-brand" href={m.url} target="_blank" rel="noreferrer noopener">Open link</a>
-          : <a className="text-brand" href={`/api/materials/${m.id}/file`}>Download</a> },
+          : m.fileName?.toLowerCase().endsWith('.pdf')
+            ? <button className="text-brand" onClick={() => setPreview(m)}>Open PDF</button>
+            : <a className="text-brand" href={`/api/materials/${m.id}/file`}>Download</a> },
         ...(staff ? [{ header: '', cell: (m) => <button className="text-sm text-red-600" onClick={() => remove(m)}>Delete</button> }] : []),
       ]} />
+      {preview && (
+        <PdfPreview material={preview} onClose={() => setPreview(null)} />
+      )}
       {open && (
         <Modal title="Add material" onClose={() => setOpen(false)}>
           <form onSubmit={upload}>

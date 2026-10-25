@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { api } from '../lib/api.js';
 import { Field, Loading, Modal, Notice, PageHeader, useFetch } from '../components/ui.jsx';
 import RichEditor from '../components/RichEditor.jsx';
+import SharedLearningNotes from '../components/SharedLearningNotes.jsx';
 import { errMsg } from '../lib/format.js';
 
 // Files and links attached to a single lesson.
@@ -128,6 +129,7 @@ export default function Courses() {
   return (
     <>
       <PageHeader title="Learning content" />
+      <SharedLearningNotes canManage />
       <div className="grid gap-4">
         {data.map((c) => (
           <div key={c.id} className="card">
