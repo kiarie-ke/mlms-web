@@ -11,6 +11,7 @@ import Verify from './pages/Verify.jsx';
 const page = (loader) => lazy(loader);
 const pages = {
   dashboard: page(() => import('./pages/Dashboard.jsx')),
+  calendar: page(() => import('./pages/Calendar.jsx')),
   students: page(() => import('./pages/Students.jsx')),
   admissions: page(() => import('./pages/Admissions.jsx')),
   cohorts: page(() => import('./pages/Cohorts.jsx')),
