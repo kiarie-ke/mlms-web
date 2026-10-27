@@ -44,14 +44,16 @@ export default function App() {
   if (loading) return <AppSkeleton />;
   if (!user)
     return (
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/reset-password" element={<pages.resetPassword />} />
-        <Route path="/reset-password/:token" element={<pages.resetPassword />} />
-        <Route path="/apply" element={<Apply />} />
-        <Route path="/verify/:code" element={<Verify />} />
-        <Route path="*" element={<Navigate to="/login" replace />} />
-      </Routes>
+      <Suspense fallback={<AppSkeleton />}>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/reset-password" element={<pages.resetPassword />} />
+          <Route path="/reset-password/:token" element={<pages.resetPassword />} />
+          <Route path="/apply" element={<Apply />} />
+          <Route path="/verify/:code" element={<Verify />} />
+          <Route path="*" element={<Navigate to="/login" replace />} />
+        </Routes>
+      </Suspense>
     );
   if (user.mustChangePassword) {
     return (
