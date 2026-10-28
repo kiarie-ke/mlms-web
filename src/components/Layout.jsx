@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
-import { Bell, Download, LogOut, Menu, MessageSquare, X } from 'lucide-react';
+import { Bell, Download, LogOut, Menu, MessageSquare, PanelLeftClose, PanelLeftOpen, X } from 'lucide-react';
 import { useAuth } from '../lib/auth.jsx';
 import { navItems } from '../lib/nav.js';
 import { api } from '../lib/api.js';
@@ -14,6 +14,7 @@ export default function Layout() {
   const [unread, setUnread] = useState(0);
   const [unreadMessages, setUnreadMessages] = useState(0);
   const [open, setOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [installEvt, setInstallEvt] = useState(null);
   const items = navItems(user.role);
   const currentPage = items.find(({ to }) => (
@@ -59,65 +60,78 @@ export default function Layout() {
       >
         {open ? <X size={20} /> : <Menu size={20} />}
       </button>
-      <aside className={`${open ? 'translate-x-0' : '-translate-x-full'} fixed inset-y-0 left-0 z-40 flex w-[17rem] shrink-0 flex-col overflow-y-auto bg-gradient-to-b from-navy to-[#0B1B2E] text-slate-300 shadow-2xl transition-transform duration-200 md:sticky md:top-0 md:h-screen md:translate-x-0 md:shadow-none`}>
-        <div className="flex items-center gap-3 border-b border-white/10 px-6 py-6">
+      <aside className={`${open ? 'translate-x-0' : '-translate-x-full'} fixed inset-y-0 left-0 z-40 flex w-[17rem] shrink-0 flex-col overflow-y-auto bg-gradient-to-b from-navy to-[#0B1B2E] text-slate-300 shadow-2xl transition-[transform,width] duration-200 md:sticky md:top-0 md:h-screen md:translate-x-0 md:shadow-none ${sidebarCollapsed ? 'lg:w-20' : 'lg:w-[17rem]'}`}>
+        <div className={`flex items-center gap-3 border-b border-white/10 px-6 py-6 ${sidebarCollapsed ? 'lg:justify-center lg:px-3' : ''}`}>
           <img src="/logo.png" alt="" className="h-11 w-11 rounded-xl bg-white p-1 shadow-sm" />
-          <div>
+          <div className={sidebarCollapsed ? 'lg:hidden' : ''}>
             <span className="block font-display text-lg font-bold tracking-wide text-white">MODARA</span>
             <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-400">Learning portal</span>
           </div>
         </div>
-        <nav aria-label="Main navigation" className="flex-1 space-y-1 px-3 py-5">
-          <p className="mb-3 px-3 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">Workspace</p>
+        <nav aria-label="Main navigation" className={`flex-1 space-y-1 px-3 py-5 ${sidebarCollapsed ? 'lg:px-2' : ''}`}>
+          <p className={`mb-3 px-3 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500 ${sidebarCollapsed ? 'lg:hidden' : ''}`}>Workspace</p>
           {items.map(({ key, to, label, icon: Icon }) => (
             <NavLink
               key={key}
               onClick={() => setOpen(false)}
               to={to}
               end={to === '/'}
+              aria-label={label}
+              title={sidebarCollapsed ? label : undefined}
               className={({ isActive }) =>
-                `group flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium transition ${
+                `group flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium transition ${sidebarCollapsed ? 'lg:justify-center lg:px-0' : ''} ${
                   isActive ? 'bg-brand text-white shadow-lg shadow-blue-950/30' : 'text-slate-300 hover:bg-white/[0.07] hover:text-white'
                 }`
               }
             >
-              <Icon size={18} strokeWidth={1.8} />
-              <span className="flex-1">{label}</span>
+              <Icon className="shrink-0" size={18} strokeWidth={1.8} />
+              <span className={`flex-1 ${sidebarCollapsed ? 'lg:hidden' : ''}`}>{label}</span>
               {key === 'messages' && unreadMessages > 0 && (
-                <span className="rounded-full bg-amber px-2 py-0.5 text-[10px] font-bold text-navy">
+                <span className={`rounded-full bg-amber px-2 py-0.5 text-[10px] font-bold text-navy ${sidebarCollapsed ? 'lg:hidden' : ''}`}>
                   {unreadMessages > 99 ? '99+' : unreadMessages}
                 </span>
               )}
-              {key === 'notifications' && unread > 0 && <span className="rounded-full bg-amber px-2 py-0.5 text-[10px] font-bold text-navy">{unread}</span>}
+              {key === 'notifications' && unread > 0 && <span className={`rounded-full bg-amber px-2 py-0.5 text-[10px] font-bold text-navy ${sidebarCollapsed ? 'lg:hidden' : ''}`}>{unread}</span>}
             </NavLink>
           ))}
         </nav>
-        <div className="m-3 rounded-2xl border border-white/10 bg-white/[0.04] p-3">
+        <div className={`m-3 rounded-2xl border border-white/10 bg-white/[0.04] p-3 ${sidebarCollapsed ? 'lg:m-2 lg:p-2' : ''}`}>
           <div className="flex min-w-0 items-center gap-3 rounded-xl p-2">
             <Avatar user={user} size="h-10 w-10" className="text-sm" />
-            <Link to="/account" onClick={() => setOpen(false)} className="min-w-0 flex-1 rounded-lg hover:opacity-80">
+            <Link to="/account" aria-label="Account" onClick={() => setOpen(false)} className={`min-w-0 flex-1 rounded-lg hover:opacity-80 ${sidebarCollapsed ? 'lg:hidden' : ''}`}>
               <span className="block truncate text-sm font-semibold text-white">{user.name}</span>
               <span className="mt-0.5 block text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">{user.role}</span>
             </Link>
           </div>
           {installEvt && (
-            <button onClick={install} className="mt-2 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-cyan transition hover:bg-white/[0.06] hover:text-white">
-              <Download size={16} /> Install app
+            <button onClick={install} aria-label="Install app" title={sidebarCollapsed ? 'Install app' : undefined} className={`mt-2 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-cyan transition hover:bg-white/[0.06] hover:text-white ${sidebarCollapsed ? 'lg:justify-center lg:px-0' : ''}`}>
+              <Download className="shrink-0" size={16} /> <span className={sidebarCollapsed ? 'lg:hidden' : ''}>Install app</span>
             </button>
           )}
-          <button onClick={logout} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-slate-400 transition hover:bg-white/[0.06] hover:text-white">
-            <LogOut size={15} /> Sign out
+          <button onClick={logout} aria-label="Sign out" title={sidebarCollapsed ? 'Sign out' : undefined} className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-slate-400 transition hover:bg-white/[0.06] hover:text-white ${sidebarCollapsed ? 'lg:justify-center lg:px-0' : ''}`}>
+            <LogOut className="shrink-0" size={15} /> <span className={sidebarCollapsed ? 'lg:hidden' : ''}>Sign out</span>
           </button>
         </div>
-        <p className="px-6 pb-4 text-center text-[10px] font-medium tracking-wide text-slate-500">
+        <p className={`px-6 pb-4 text-center text-[10px] font-medium tracking-wide text-slate-500 ${sidebarCollapsed ? 'lg:hidden' : ''}`}>
           MODARA LMS · v{packageJson.version}
         </p>
       </aside>
       <main className={`min-w-0 flex-1 ${isMessagesPage ? 'md:flex md:h-screen md:min-h-0 md:flex-col md:overflow-hidden' : ''}`}>
         <header className={`sticky top-0 z-20 flex h-[4.5rem] items-center justify-between border-b border-line/80 bg-white/90 px-5 backdrop-blur-xl sm:px-7 lg:px-10 ${isMessagesPage ? 'md:shrink-0' : ''}`}>
-          <div className="min-w-0 pl-12 md:pl-0">
-            <p className="truncate text-[10px] font-bold uppercase tracking-[0.18em] text-ink-soft">MODARA / {currentPage?.label ?? 'Workspace'}</p>
-            <p className="mt-0.5 text-xs text-slate-400">Learning and teaching workspace</p>
+          <div className="flex min-w-0 items-center gap-3 pl-12 md:pl-0">
+            <button
+              type="button"
+              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+              aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              aria-pressed={sidebarCollapsed}
+              className="hidden h-10 w-10 shrink-0 place-items-center rounded-xl border border-line bg-white text-ink-soft transition hover:border-brand/30 hover:text-brand lg:grid"
+            >
+              {sidebarCollapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
+            </button>
+            <div className="min-w-0">
+              <p className="truncate text-[10px] font-bold uppercase tracking-[0.18em] text-ink-soft">MODARA / {currentPage?.label ?? 'Workspace'}</p>
+              <p className="mt-0.5 text-xs text-slate-400">Learning and teaching workspace</p>
+            </div>
           </div>
           <div className="flex items-center gap-3">
             {hasNotifications && (
