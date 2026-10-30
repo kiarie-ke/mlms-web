@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useConfirm } from '../providers/ConfirmProvider.jsx';
 import { useAuth } from '../lib/auth.jsx';
 import { api } from '../lib/api.js';
 import { Badge, Field, Loading, Modal, Notice, PageHeader, Select, Table, TextArea, useFetch } from '../components/ui.jsx';
@@ -61,6 +62,7 @@ function Grading({ assignment, onClose }) {
 
 export default function Assignments() {
   const { user } = useAuth();
+  const confirm = useConfirm();
   const staff = user.role !== 'STUDENT';
   const { data, error, reload } = useFetch('/assignments');
   const cohorts = useFetch(staff ? '/cohorts' : null);
@@ -88,7 +90,16 @@ export default function Assignments() {
       setModal(null); reload();
     } catch (err) { setMsg(errMsg(err)); }
   };
-  const remove = async (a) => { if (window.confirm('Delete this assignment and its submissions?')) { await api.del(`/assignments/${a.id}`); reload(); } };
+  const remove = async (a) => {
+    if (!await confirm({
+      title: 'Delete assignment?',
+      message: `Delete this assignment "${a.title}" and its submissions?`,
+      confirmText: 'Delete',
+      variant: 'danger',
+    })) return;
+    await api.del(`/assignments/${a.id}`);
+    reload();
+  };
 
   if (!data) return <Loading error={error} />;
   return (

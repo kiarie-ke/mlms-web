@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useConfirm } from '../providers/ConfirmProvider.jsx';
 import { api } from '../lib/api.js';
 import { Field, Loading, Modal, Notice, PageHeader, useFetch } from '../components/ui.jsx';
 import RichEditor from '../components/RichEditor.jsx';
@@ -50,6 +51,7 @@ function Attachments({ lessonId }) {
 
 // Learning content authoring for admins and instructors.
 function CourseTree({ id }) {
+  const confirm = useConfirm();
   const { data, reload } = useFetch(`/courses/${id}`);
   const [modal, setModal] = useState(null);
   const [form, setForm] = useState({});
@@ -71,7 +73,16 @@ function CourseTree({ id }) {
       reload();
     } catch (err) { setMsg(errMsg(err)); }
   };
-  const del = async (path, what) => { if (window.confirm(`Delete this ${what}?`)) { await api.del(path); reload(); } };
+  const del = async (path, what, name) => {
+    if (!await confirm({
+      title: `Delete ${what}?`,
+      message: `Delete this ${what} "${name}"?`,
+      confirmText: 'Delete',
+      variant: 'danger',
+    })) return;
+    await api.del(path);
+    reload();
+  };
 
   if (!data) return <Loading />;
   return (
@@ -82,7 +93,7 @@ function CourseTree({ id }) {
             <p className="font-display font-semibold">{m.title}</p>
             <div className="flex gap-3 text-sm">
               <button className="text-brand" onClick={() => openModal({ kind: 'lesson', moduleId: m.id })}>+ Lesson</button>
-              <button className="text-red-600" onClick={() => del(`/modules/${m.id}`, 'module')}>Delete</button>
+              <button className="text-red-600" onClick={() => del(`/modules/${m.id}`, 'module', m.title)}>Delete</button>
             </div>
           </div>
           <ul className="mt-2 space-y-1">
@@ -91,7 +102,7 @@ function CourseTree({ id }) {
                 <Link className="hover:underline" to={`/lessons/${l.id}`}>{l.title}</Link>
                 <span className="flex gap-3">
                   <button className="text-brand" onClick={() => openModal({ kind: 'edit', lessonId: l.id, initial: { title: l.title, summary: l.summary, content: l.content } })}>Edit</button>
-                  <button className="text-red-600" onClick={() => del(`/lessons/${l.id}`, 'lesson')}>Delete</button>
+                  <button className="text-red-600" onClick={() => del(`/lessons/${l.id}`, 'lesson', l.title)}>Delete</button>
                 </span>
               </li>
             ))}

@@ -1,9 +1,12 @@
 import { useState } from 'react';
+import { toast } from 'sonner';
+import { useConfirm } from '../providers/ConfirmProvider.jsx';
 import { api } from '../lib/api.js';
 import { Badge, Field, Loading, Modal, Notice, PageHeader, Table, useFetch } from '../components/ui.jsx';
 import { errMsg } from '../lib/format.js';
 
 export default function Instructors() {
+  const confirm = useConfirm();
   const { data, error, reload } = useFetch('/instructors');
   const cohorts = useFetch('/cohorts');
   const [open, setOpen] = useState(false);
@@ -58,8 +61,13 @@ export default function Instructors() {
     }
   };
   const remove = async (i) => {
-    if (!window.confirm(`Delete instructor ${i.name}? This cannot be undone.`)) return;
-    try { await api.del(`/instructors/${i.id}`); reload(); } catch (err) { window.alert(errMsg(err)); }
+    if (!await confirm({
+      title: 'Delete instructor?',
+      message: `Delete instructor ${i.name}? This cannot be undone.`,
+      confirmText: 'Delete',
+      variant: 'danger',
+    })) return;
+    try { await api.del(`/instructors/${i.id}`); reload(); } catch (err) { toast.error(errMsg(err)); }
   };
 
   if (!data) return <Loading error={error} />;

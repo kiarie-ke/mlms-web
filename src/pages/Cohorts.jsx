@@ -1,11 +1,14 @@
 import { useState } from 'react';
+import { toast } from 'sonner';
 import { useAuth } from '../lib/auth.jsx';
 import { api } from '../lib/api.js';
 import { Field, Loading, Modal, Notice, PageHeader, Select, Table, TextArea, useFetch } from '../components/ui.jsx';
 import { errMsg, fmtDate } from '../lib/format.js';
+import { useConfirm } from '../providers/ConfirmProvider.jsx';
 
 export default function Cohorts() {
   const { user } = useAuth();
+  const confirm = useConfirm();
   const admin = user.role === 'ADMIN';
   const { data, error, reload } = useFetch('/cohorts');
   const courses = useFetch('/courses');
@@ -33,11 +36,16 @@ export default function Cohorts() {
   };
   const remove = async (c) => {
     if (c._count.students > 0) {
-      window.alert(`Move or remove this cohort's ${c._count.students} student(s) before deleting it.`);
+      toast.warning(`Move or remove this cohort's ${c._count.students} student(s) before deleting it.`);
       return;
     }
-    if (!window.confirm(`Delete cohort "${c.name}" and its assignments, quizzes, classes and discussions?`)) return;
-    try { await api.del(`/cohorts/${c.id}`); reload(); } catch (err) { window.alert(errMsg(err)); }
+    if (!await confirm({
+      title: 'Delete cohort?',
+      message: `Delete cohort "${c.name}" and its assignments, quizzes, classes and discussions?`,
+      confirmText: 'Delete',
+      variant: 'danger',
+    })) return;
+    try { await api.del(`/cohorts/${c.id}`); reload(); } catch (err) { toast.error(errMsg(err)); }
   };
   const assign = async (cohort, instructorId, on) => {
     const inst = instructors.data.find((i) => i.id === instructorId);

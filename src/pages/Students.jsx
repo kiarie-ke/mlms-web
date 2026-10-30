@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { toast } from 'sonner';
+import { useConfirm } from '../providers/ConfirmProvider.jsx';
 import { useAuth } from '../lib/auth.jsx';
 import { api } from '../lib/api.js';
 import { Badge, Field, Loading, Modal, Notice, PageHeader, Select, Table, useFetch } from '../components/ui.jsx';
@@ -9,6 +11,7 @@ const empty = { name: '', email: '', phone: '', cohortId: '' };
 
 export default function Students() {
   const { user } = useAuth();
+  const confirm = useConfirm();
   const admin = user.role === 'ADMIN';
   const { data, error, reload } = useFetch('/students');
   const atRisk = useFetch('/students/at-risk');
@@ -23,12 +26,23 @@ export default function Students() {
   const instructors = useFetch(admin ? '/instructors' : null);
   const toggleSel = (id) => setSel((x) => (x.includes(id) ? x.filter((i) => i !== id) : [...x, id]));
   const assign = async (instructorId) => {
-    try { await api.post('/students/assign', { studentIds: sel, instructorId: instructorId || null }); setSel([]); reload(); } catch (err) { window.alert(errMsg(err)); }
+    try { await api.post('/students/assign', { studentIds: sel, instructorId: instructorId || null }); setSel([]); reload(); } catch (err) { toast.error(errMsg(err)); }
   };
   const autoAssign = async () => {
     if (!cohortFilter) return;
-    if (!window.confirm('Split all students of this cohort evenly between its instructors? Existing assignments will be replaced.')) return;
-    try { const r = await api.post('/students/auto-assign', { cohortId: cohortFilter }); window.alert(`${r.updated} students assigned.`); reload(); } catch (err) { window.alert(errMsg(err)); }
+    if (!await confirm({
+      title: 'Replace student assignments?',
+      message: 'Split all students of this cohort evenly between its instructors? Existing assignments will be replaced.',
+      confirmText: 'Split evenly',
+      variant: 'danger',
+    })) return;
+    try {
+      const r = await api.post('/students/auto-assign', { cohortId: cohortFilter });
+      toast.success(`${r.updated} students assigned.`);
+      reload();
+    } catch (err) {
+      toast.error(errMsg(err));
+    }
   };
 
   const save = async (e) => {
@@ -47,7 +61,12 @@ export default function Students() {
   };
   const patch = async (id, body) => { await api.patch(`/students/${id}`, body); reload(); };
   const remove = async (s) => {
-    if (!window.confirm(`Delete ${s.user.name} and all their records?`)) return;
+    if (!await confirm({
+      title: 'Delete student?',
+      message: `Delete ${s.user.name} and all their records?`,
+      confirmText: 'Delete',
+      variant: 'danger',
+    })) return;
     await api.del(`/students/${s.id}`);
     reload();
   };

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useConfirm } from '../providers/ConfirmProvider.jsx';
 import { useAuth } from '../lib/auth.jsx';
 import { api } from '../lib/api.js';
 import {
@@ -223,6 +224,7 @@ function Builder({ cohorts, onClose, onSaved }) {
 
 export default function Quizzes() {
   const { user } = useAuth();
+  const confirm = useConfirm();
   const staff = user.role !== 'STUDENT';
   const { data, error, reload } = useFetch('/quizzes');
   const cohorts = useFetch(staff ? '/cohorts' : null);
@@ -234,10 +236,14 @@ export default function Quizzes() {
   const showAttempts = async (q) =>
     setAttempts({ quiz: q, rows: await api.get(`/quizzes/${q.id}/attempts`) });
   const remove = async (q) => {
-    if (window.confirm('Delete this quiz and its results?')) {
-      await api.del(`/quizzes/${q.id}`);
-      reload();
-    }
+    if (!await confirm({
+      title: 'Delete quiz?',
+      message: `Delete this quiz "${q.title}" and its results?`,
+      confirmText: 'Delete',
+      variant: 'danger',
+    })) return;
+    await api.del(`/quizzes/${q.id}`);
+    reload();
   };
 
   if (!data) return <Loading error={error} />;

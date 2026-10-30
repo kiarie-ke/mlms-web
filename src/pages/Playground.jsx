@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Editor from '@monaco-editor/react';
 import { PageHeader } from '../components/ui.jsx';
+import { useConfirm } from '../providers/ConfirmProvider.jsx';
 
 const KEY = 'mlms.playground.v2';
 const start = {
@@ -146,6 +147,7 @@ const bridge = `<script>
 const build = (c) => `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">${bridge}<style>${c.css}</style></head><body>${c.html}<script>${c.js.replace(/<\/script/gi, '<\\/script')}<\/script></body></html>`;
 
 export default function Playground() {
+  const confirm = useConfirm();
   const [code, setCode] = useState(() => {
     try { return { ...start, ...JSON.parse(localStorage.getItem(KEY)) }; } catch { return start; }
   });
@@ -323,8 +325,8 @@ export default function Playground() {
         </label>
         {mode === 'web' && <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={auto} onChange={(e) => setAuto(e.target.checked)} /> Live preview</label>}
         <button className="btn-ghost" onClick={download}>Download</button>
-        <button className="btn-ghost" onClick={() => {
-          if (window.confirm('Reset to the starter code?')) {
+        <button className="btn-ghost" onClick={async () => {
+          if (await confirm({ title: 'Reset code?', message: 'Reset to the starter code?', confirmText: 'Reset' })) {
             setCode(start);
             setRun(start);
           }

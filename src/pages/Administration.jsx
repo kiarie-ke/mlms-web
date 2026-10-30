@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
+import { useConfirm } from '../providers/ConfirmProvider.jsx';
 import { api } from '../lib/api.js';
 import {
   Badge,
@@ -25,6 +27,7 @@ const SETTINGS = [
 ];
 
 export default function Administration() {
+  const confirm = useConfirm();
   const users = useFetch('/admin/users');
   const settings = useFetch('/admin/settings');
   const [auditPage, setAuditPage] = useState(1);
@@ -72,23 +75,32 @@ export default function Administration() {
       await api.patch(`/admin/users/${u.id}/active`, { active: !u.active });
       users.reload();
     } catch (err) {
-      window.alert(errMsg(err));
+      toast.error(errMsg(err));
     }
   };
   const deleteUser = async (u) => {
     const dataWarning = u.role === 'STUDENT'
       ? ' Their student profile and academic records will also be deleted.'
       : '';
-    if (!window.confirm(`Permanently delete ${u.name}?${dataWarning} This cannot be undone.`)) return;
+    if (!await confirm({
+      title: 'Permanently delete user?',
+      message: `Permanently delete ${u.name}?${dataWarning} This cannot be undone.`,
+      confirmText: 'Delete',
+      variant: 'danger',
+    })) return;
     try {
       await api.del(`/admin/users/${u.id}`);
       users.reload();
     } catch (err) {
-      window.alert(errMsg(err));
+      toast.error(errMsg(err));
     }
   };
   const reset = async (u) => {
-    if (!window.confirm(`Reset password for ${u.name}?`)) return;
+    if (!await confirm({
+      title: 'Reset password?',
+      message: `Reset password for ${u.name}?`,
+      confirmText: 'Reset password',
+    })) return;
     try {
       const r = await api.post(`/admin/users/${u.id}/reset-password`);
       setResetLink({ name: u.name, url: r.resetUrl, expiresAt: r.expiresAt, error: '' });

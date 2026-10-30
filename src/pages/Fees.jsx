@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { toast } from 'sonner';
 import { useAuth } from '../lib/auth.jsx';
 import { api } from '../lib/api.js';
 import { Badge, Field, Loading, Modal, Notice, PageHeader, Select, Stat, Table, useFetch } from '../components/ui.jsx';
@@ -52,7 +53,7 @@ function Admin() {
       if (modal === 'plan') await api.post('/fees/plans', { title: form.title, amount: num(form.amount), courseId: form.courseId || undefined });
       if (modal === 'assign') {
         const r = await api.post(`/fees/plans/${form.id}/assign`, { cohortId: form.cohortId, discount: num(form.discount), dueDate: due });
-        window.alert(`${r.created} invoices created.`);
+        toast.success(`${r.created} invoices created.`);
       }
       setModal(null);
       invoices.reload();

@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { toast } from 'sonner';
+import { useConfirm } from '../providers/ConfirmProvider.jsx';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../lib/auth.jsx';
 import { api } from '../lib/api.js';
@@ -28,6 +30,7 @@ function Printable({ cert, onClose }) {
 
 export default function Certification() {
   const { user } = useAuth();
+  const confirm = useConfirm();
   const admin = user.role === 'ADMIN';
   const staff = user.role !== 'STUDENT';
   const certs = useFetch('/certificates');
@@ -36,8 +39,12 @@ export default function Certification() {
 
   const issue = async (r) => {
     const override = !r.cleared;
-    if (override && !window.confirm(`${r.name} has not met all requirements (progress, fees). Issue anyway?`)) return;
-    try { await api.post('/certificates', { studentId: r.studentId, override }); clearance.reload(); certs.reload(); } catch (err) { window.alert(errMsg(err)); }
+    if (override && !await confirm({
+      title: 'Issue certificate anyway?',
+      message: `${r.name} has not met all requirements (progress, fees). Issue anyway?`,
+      confirmText: 'Issue certificate',
+    })) return;
+    try { await api.post('/certificates', { studentId: r.studentId, override }); clearance.reload(); certs.reload(); } catch (err) { toast.error(errMsg(err)); }
   };
 
   if (!certs.data) return <Loading error={certs.error} />;

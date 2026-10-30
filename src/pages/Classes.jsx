@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useConfirm } from '../providers/ConfirmProvider.jsx';
 import { useAuth } from '../lib/auth.jsx';
 import { api } from '../lib/api.js';
 import { Field, Loading, Modal, Notice, PageHeader, Select, Table, useFetch } from '../components/ui.jsx';
@@ -13,6 +14,7 @@ const localDateTime = (date) => {
 
 export default function Classes() {
   const { user } = useAuth();
+  const confirm = useConfirm();
   const staff = user.role !== 'STUDENT';
   const { data, error, reload } = useFetch('/classes');
   const cohorts = useFetch(staff ? '/cohorts' : null);
@@ -57,7 +59,12 @@ export default function Classes() {
   };
 
   const remove = async (session) => {
-    if (!window.confirm('Delete this class?')) return;
+    if (!await confirm({
+      title: 'Delete class?',
+      message: `Delete this class "${session.title}"?`,
+      confirmText: 'Delete',
+      variant: 'danger',
+    })) return;
     try {
       await api.del(`/classes/${session.id}`);
       setPageError('');

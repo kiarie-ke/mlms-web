@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { useAuth } from '../lib/auth.jsx';
 import { api } from '../lib/api.js';
 import { errMsg } from '../lib/format.js';
+import { useConfirm } from '../providers/ConfirmProvider.jsx';
 import PdfPreview from './PdfPreview.jsx';
 import { Notice, useFetch } from './ui.jsx';
 
@@ -15,6 +16,7 @@ const titleFromFilename = (filename) =>
 
 export default function SharedLearningNotes({ canManage = false }) {
   const { user } = useAuth();
+  const confirm = useConfirm();
   const { data, error, reload } = useFetch('/materials/shared');
   const [files, setFiles] = useState([]);
   const [preview, setPreview] = useState(null);
@@ -62,7 +64,12 @@ export default function SharedLearningNotes({ canManage = false }) {
   };
 
   const remove = async (material) => {
-    if (!window.confirm(`Delete "${material.title}"?`)) return;
+    if (!await confirm({
+      title: 'Delete shared learning note?',
+      message: `Delete "${material.title}"?`,
+      confirmText: 'Delete',
+      variant: 'danger',
+    })) return;
     setActionError('');
     try {
       await api.del(`/materials/${material.id}`);
