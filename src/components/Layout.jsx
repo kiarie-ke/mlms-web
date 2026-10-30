@@ -54,7 +54,7 @@ export default function Layout() {
     <div className="flex min-h-screen bg-offwhite">
       {open && <button className="fixed inset-0 z-30 bg-navy/55 backdrop-blur-sm md:hidden" onClick={() => setOpen(false)} aria-label="Close navigation" />}
       <button
-        className="fixed left-4 top-4 z-50 grid h-11 w-11 place-items-center rounded-xl bg-navy text-white shadow-lg md:hidden"
+        className="mobile-menu-toggle fixed left-4 top-4 z-50 grid h-11 w-11 place-items-center rounded-xl bg-navy text-white shadow-lg md:hidden"
         onClick={() => setOpen(!open)}
         aria-label={open ? 'Close menu' : 'Open menu'}
       >
