@@ -1,5 +1,5 @@
 import { useAuth } from '../lib/auth.jsx';
-import { Loading, PageHeader, Stat, useFetch } from '../components/ui.jsx';
+import { Bar, Loading, PageHeader, Stat, useFetch } from '../components/ui.jsx';
 import { fmtDate, fmtDateTime } from '../lib/format.js';
 import { Link } from 'react-router-dom';
 import { ArrowRight, ArrowUpRight, CalendarDays, ClipboardList, Megaphone } from 'lucide-react';
@@ -7,6 +7,7 @@ import { ArrowRight, ArrowUpRight, CalendarDays, ClipboardList, Megaphone } from
 export default function Dashboard() {
   const { user } = useAuth();
   const { data, error } = useFetch('/dashboard');
+  const grades = useFetch(user.role === 'STUDENT' ? '/grades' : null);
   const news = useFetch('/announcements');
   const firstName = user.name.split(' ')[0];
   const today = new Intl.DateTimeFormat(undefined, { weekday: 'long', month: 'long', day: 'numeric' }).format(new Date());
@@ -39,6 +40,84 @@ export default function Dashboard() {
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {data.cards.map((c) => <Stat key={c.label} {...c} />)}
           </div>
+          {user.role === 'STUDENT' && (
+            <section className="mt-8 grid gap-6 xl:grid-cols-2" aria-label="Learning progress">
+              <div className="card">
+                <div className="mb-5">
+                  <h2 className="font-display text-lg font-bold text-ink">Learning progress</h2>
+                  <p className="mt-1 text-xs text-ink-soft">Your course, assignment, and attendance progress.</p>
+                </div>
+                <div className="space-y-5">
+                  {[
+                    {
+                      label: 'Course lessons',
+                      progress: data.learningProgress?.course,
+                      value: data.learningProgress?.course
+                        ? `${data.learningProgress.course.done}/${data.learningProgress.course.total} lessons`
+                        : 'No course assigned',
+                    },
+                    {
+                      label: 'Assignments submitted',
+                      progress: data.learningProgress?.assignments,
+                      value: data.learningProgress?.assignments.total
+                        ? `${data.learningProgress.assignments.completed}/${data.learningProgress.assignments.total} assignments`
+                        : 'No assignments yet',
+                    },
+                    {
+                      label: 'Attendance',
+                      progress: data.learningProgress?.attendance,
+                      value: data.learningProgress?.attendance.total
+                        ? `${data.learningProgress.attendance.attended}/${data.learningProgress.attendance.total} classes attended`
+                        : 'No attendance recorded',
+                    },
+                  ].map(({ label, progress, value }) => (
+                    <div key={label}>
+                      <div className="mb-2 flex items-center justify-between gap-3 text-sm">
+                        <span className="font-semibold text-ink">{label}</span>
+                        <span className="text-ink-soft">{progress?.percent == null ? '—' : `${progress.percent}%`}</span>
+                      </div>
+                      {progress?.percent == null ? (
+                        <p className="text-xs text-ink-soft">{value}</p>
+                      ) : (
+                        <>
+                          <Bar percent={progress.percent} />
+                          <p className="mt-1.5 text-xs text-ink-soft">{value}</p>
+                        </>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="card">
+                <div className="mb-4 flex items-center justify-between gap-3">
+                  <div>
+                    <h2 className="font-display text-lg font-bold text-ink">Recent grades</h2>
+                    <p className="mt-1 text-xs text-ink-soft">Your latest graded assignments and quizzes.</p>
+                  </div>
+                  <Link to="/grades" className="text-sm font-semibold text-brand">All grades</Link>
+                </div>
+                {!grades.data ? (
+                  <Loading error={grades.error} />
+                ) : grades.data.rows.length ? (
+                  <div className="divide-y divide-line">
+                    {grades.data.rows.slice(0, 5).map((grade) => (
+                      <div key={grade.id} className="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0">
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-semibold text-ink">{grade.title}</p>
+                          <p className="mt-1 text-xs text-ink-soft">{grade.kind} · {fmtDate(grade.date)}</p>
+                        </div>
+                        <span className="shrink-0 rounded-full bg-brand/10 px-3 py-1 text-sm font-bold text-brand">
+                          {grade.score}/{grade.max}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="rounded-xl bg-slate-50 p-4 text-sm text-ink-soft">Grades will appear here after work is marked.</p>
+                )}
+              </div>
+            </section>
+          )}
           <section className="mt-8" aria-labelledby="next-actions-heading">
             <div className="mb-4 flex items-end justify-between gap-4">
               <div>
@@ -71,8 +150,8 @@ export default function Dashboard() {
             <section className="mt-8" aria-labelledby="assignments-heading">
               <div className="mb-4 flex items-end justify-between gap-4">
                 <div>
-                  <h2 id="assignments-heading" className="font-display text-lg font-bold text-ink">Assignments to submit</h2>
-                  <p className="mt-1 text-xs text-ink-soft">Your next outstanding assignments.</p>
+                  <h2 id="assignments-heading" className="font-display text-lg font-bold text-ink">Assignments & deadlines</h2>
+                  <p className="mt-1 text-xs text-ink-soft">Outstanding work, prioritized by deadline.</p>
                 </div>
                 <Link to="/assignments" className="inline-flex items-center gap-1 text-sm font-semibold text-brand">All assignments <ArrowRight size={15} /></Link>
               </div>
