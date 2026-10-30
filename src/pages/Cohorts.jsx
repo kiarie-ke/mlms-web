@@ -19,6 +19,18 @@ export default function Cohorts() {
     e.preventDefault();
     try { await api.post(path, body); setModal(null); after?.(); } catch (err) { setMsg(errMsg(err)); }
   };
+  // Suggests CODE-MON-YEAR (e.g. JSD-SEP-2026) until the name is edited manually.
+  const setCohortForm = (patch) => {
+    const next = { ...form, ...patch };
+    const course = courses.data?.find((c) => c.id === next.courseId);
+    if (!next.nameEdited && course && next.startDate) {
+      const code = course.title.split(/\s+/).filter(Boolean).map((w) => w[0]).join('').toUpperCase();
+      const d = new Date(next.startDate);
+      const mon = d.toLocaleString('en', { month: 'short', timeZone: 'UTC' }).toUpperCase();
+      next.name = `${code}-${mon}-${d.getUTCFullYear()}`;
+    }
+    setForm(next);
+  };
   const assign = async (cohort, instructorId, on) => {
     const inst = instructors.data.find((i) => i.id === instructorId);
     const ids = new Set(inst.teaching.map((t) => t.id));
@@ -74,12 +86,12 @@ export default function Cohorts() {
       {modal === 'cohort' && (
         <Modal title="New cohort" onClose={() => setModal(null)}>
           <form onSubmit={submit('/cohorts', { name: form.name, courseId: form.courseId, startDate: form.startDate && new Date(form.startDate).toISOString() }, reload)}>
-            <Field label="Name" value={form.name ?? ''} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
-            <Select label="Course" required value={form.courseId ?? ''} onChange={(e) => setForm({ ...form, courseId: e.target.value })}>
+            <Field label="Name" value={form.name ?? ''} onChange={(e) => setForm({ ...form, name: e.target.value, nameEdited: true })} required />
+            <Select label="Course" required value={form.courseId ?? ''} onChange={(e) => setCohortForm({ courseId: e.target.value })}>
               <option value="">Select…</option>
               {courses.data?.map((c) => <option key={c.id} value={c.id}>{c.title}</option>)}
             </Select>
-            <Field label="Start date" type="date" value={form.startDate ?? ''} onChange={(e) => setForm({ ...form, startDate: e.target.value })} required />
+            <Field label="Start date" type="date" value={form.startDate ?? ''} onChange={(e) => setCohortForm({ startDate: e.target.value })} required />
             <Notice error>{msg}</Notice>
             <button className="btn-primary w-full">Create cohort</button>
           </form>
