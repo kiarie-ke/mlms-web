@@ -1,4 +1,64 @@
-<!doctype html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Offline | MODARA</title>
+<style>
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #111827;
+    color: #fff;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    text-align: center;
+    padding: 24px;
+  }
+  .icon {
+    font-size: 3rem;
+    margin-bottom: 16px;
+  }
+  code {
+    display: block;
+    font-family: ui-monospace, Consolas, monospace;
+    font-size: 1.25rem;
+    color: #93c5fd;
+    margin-bottom: 16px;
+  }
+  .kw { color: #f472b6; }
+  p { color: #e5e7eb; margin: 0 0 24px; }
+  button {
+    background: #2563eb;
+    color: #fff;
+    border: 0;
+    border-radius: 8px;
+    padding: 12px 24px;
+    font-size: 1rem;
+    cursor: pointer;
+  }
+</style>
+</head>
+<body>
+  <main>
+    <div class="icon" aria-hidden="true">📡</div>
+    <code>
+      <span class="kw">if</span> (internet) { learn(); }<br>
+      <span class="kw">else</span> { retry(); }
+    </code>
+    <p>Reconnect, then press Retry.</p>
+    <button onclick="location.reload()">Retry</button>
+  </main>
+  <script>
+    window.addEventListener("online", () => location.reload());
+  </script>
+</body>
+</html>
+
+
+<!-- <!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
@@ -34,4 +94,4 @@
     <button onclick="location.reload()">Retry</button>
   </div>
 </body>
-</html>
+</html> -->
