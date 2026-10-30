@@ -1,5 +1,5 @@
 // Caches the app shell only. API calls and uploads always go to the network so data is never stale or shared between users.
-const CACHE = 'mlms-shell-v1';
+const CACHE = 'mlms-shell-v2';
 const SHELL = ['/', '/logo.png', '/icon-192.png', '/offline.html'];
 
 self.addEventListener('install', (e) => {
