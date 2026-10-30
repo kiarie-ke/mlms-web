@@ -32,6 +32,10 @@ export default function Cohorts() {
     setForm(next);
   };
   const remove = async (c) => {
+    if (c._count.students > 0) {
+      window.alert(`Move or remove this cohort's ${c._count.students} student(s) before deleting it.`);
+      return;
+    }
     if (!window.confirm(`Delete cohort "${c.name}" and its assignments, quizzes, classes and discussions?`)) return;
     try { await api.del(`/cohorts/${c.id}`); reload(); } catch (err) { window.alert(errMsg(err)); }
   };
