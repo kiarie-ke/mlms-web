@@ -9,6 +9,10 @@ export default function Instructors() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ name: '', email: '' });
   const [msg, setMsg] = useState({ text: '', error: false });
+  const [editing, setEditing] = useState(null);
+  const [editForm, setEditForm] = useState({ active: true, cohortIds: [] });
+  const [editMsg, setEditMsg] = useState({ text: '', error: false });
+  const [saving, setSaving] = useState(false);
 
   const create = async (e) => {
     e.preventDefault();
@@ -19,16 +23,43 @@ export default function Instructors() {
       reload();
     } catch (err) { setMsg({ text: errMsg(err), error: true }); }
   };
-  const toggle = async (i) => { await api.patch(`/instructors/${i.id}`, { active: !i.active }); reload(); };
+  const edit = (instructor) => {
+    setEditing(instructor);
+    setEditForm({
+      active: instructor.active,
+      cohortIds: instructor.teaching.map((cohort) => cohort.id),
+    });
+    setEditMsg({ text: '', error: false });
+  };
+  const saveInstructor = async (e) => {
+    e.preventDefault();
+    if (saving) return;
+    const changes = {};
+    if (editForm.active !== editing.active) changes.active = editForm.active;
+    const originalCohortIds = editing.teaching.map((cohort) => cohort.id).sort();
+    const updatedCohortIds = [...editForm.cohortIds].sort();
+    if (JSON.stringify(originalCohortIds) !== JSON.stringify(updatedCohortIds)) {
+      changes.cohortIds = editForm.cohortIds;
+    }
+    if (!Object.keys(changes).length) {
+      setEditing(null);
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await api.patch(`/instructors/${editing.id}`, changes);
+      setEditing(null);
+      reload();
+    } catch (err) {
+      setEditMsg({ text: errMsg(err), error: true });
+    } finally {
+      setSaving(false);
+    }
+  };
   const remove = async (i) => {
     if (!window.confirm(`Delete instructor ${i.name}? This cannot be undone.`)) return;
     try { await api.del(`/instructors/${i.id}`); reload(); } catch (err) { window.alert(errMsg(err)); }
-  };
-  const assign = async (i, cohortId, on) => {
-    const ids = new Set(i.teaching.map((t) => t.id));
-    on ? ids.add(cohortId) : ids.delete(cohortId);
-    await api.patch(`/instructors/${i.id}`, { cohortIds: [...ids] });
-    reload();
   };
 
   if (!data) return <Loading error={error} />;
@@ -42,15 +73,13 @@ export default function Instructors() {
         { header: 'Cohorts', cell: (i) => (
           <div className="flex flex-wrap gap-x-4 gap-y-1">
             {cohorts.data?.map((c) => (
-              <label key={c.id} className="flex items-center gap-1 text-sm">
-                <input type="checkbox" checked={i.teaching.some((t) => t.id === c.id)} onChange={(e) => assign(i, c.id, e.target.checked)} /> {c.name}
-              </label>
+              <span key={c.id} className="text-sm">{c.name}</span>
             ))}
           </div>
         ) },
         { header: '', cell: (i) => (
           <div className="flex gap-2">
-            <button className="btn-ghost" onClick={() => toggle(i)}>{i.active ? 'Deactivate' : 'Activate'}</button>
+            <button className="btn-ghost" onClick={() => edit(i)}>Edit</button>
             <button className="btn-ghost text-red-600" onClick={() => remove(i)}>Delete</button>
           </div>
         ) },
@@ -62,6 +91,41 @@ export default function Instructors() {
             <Field label="Email" type="email" required value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
             <Notice error={msg.error}>{msg.text}</Notice>
             <button className="btn-primary w-full">Create instructor</button>
+          </form>
+        </Modal>
+      )}
+      {editing && (
+        <Modal title={`Edit ${editing.name}`} onClose={() => !saving && setEditing(null)}>
+          <form onSubmit={saveInstructor}>
+            <label className="mb-4 flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={editForm.active}
+                onChange={(e) => setEditForm({ ...editForm, active: e.target.checked })}
+              />
+              Active
+            </label>
+            <p className="label">Cohorts</p>
+            <div className="mb-4 space-y-2">
+              {cohorts.data?.map((cohort) => (
+                <label key={cohort.id} className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={editForm.cohortIds.includes(cohort.id)}
+                    onChange={(e) => {
+                      const cohortIds = new Set(editForm.cohortIds);
+                      e.target.checked ? cohortIds.add(cohort.id) : cohortIds.delete(cohort.id);
+                      setEditForm({ ...editForm, cohortIds: [...cohortIds] });
+                    }}
+                  />
+                  {cohort.name}
+                </label>
+              ))}
+            </div>
+            <Notice error={editMsg.error}>{editMsg.text}</Notice>
+            <button className="btn-primary w-full" disabled={saving}>
+              {saving ? 'Saving…' : 'Save changes'}
+            </button>
           </form>
         </Modal>
       )}

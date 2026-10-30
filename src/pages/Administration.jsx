@@ -27,7 +27,13 @@ const SETTINGS = [
 export default function Administration() {
   const users = useFetch('/admin/users');
   const settings = useFetch('/admin/settings');
-  const audit = useFetch('/admin/audit-logs?limit=50');
+  const [auditPage, setAuditPage] = useState(1);
+  const [auditFilters, setAuditFilters] = useState({ action: '', entityType: '', from: '', to: '' });
+  const auditParams = new URLSearchParams({ page: String(auditPage), limit: '20' });
+  Object.entries(auditFilters).forEach(([key, value]) => {
+    if (value) auditParams.set(key, value);
+  });
+  const audit = useFetch(`/admin/audit-logs?${auditParams.toString()}`);
   const [values, setValues] = useState({});
   const [saved, setSaved] = useState({ text: '', error: false });
   const [open, setOpen] = useState(false);
@@ -96,6 +102,10 @@ export default function Administration() {
     } catch (err) {
       setResetLink({ ...resetLink, error: `Could not copy the link: ${errMsg(err)}` });
     }
+  };
+  const updateAuditFilter = (key, value) => {
+    setAuditFilters({ ...auditFilters, [key]: value });
+    setAuditPage(1);
   };
 
   if (!users.data) return <Loading error={users.error} />;
@@ -193,29 +203,126 @@ export default function Administration() {
         <div className="mb-3 flex items-center justify-between gap-3">
           <div>
             <h2 className="text-lg font-semibold">Recent admin activity</h2>
-            <p className="text-sm text-ink-soft">Latest 50 administrative changes.</p>
+            <p className="text-sm text-ink-soft">Audit history of data changes.</p>
           </div>
           <button type="button" className="btn-ghost" onClick={audit.reload}>Refresh</button>
         </div>
+        <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <label className="text-xs font-semibold text-ink-soft">
+            Action
+            <select
+              className="input mt-1"
+              value={auditFilters.action}
+              onChange={(e) => updateAuditFilter('action', e.target.value)}
+            >
+              <option value="">All actions</option>
+              {[
+                'instructor.created', 'instructor.updated', 'instructor.deleted',
+                'student.created', 'student.updated', 'student.deleted', 'student.assigned',
+                'student.auto_assigned', 'cohort.message_sent',
+              ].map((action) => <option key={action} value={action}>{action}</option>)}
+            </select>
+          </label>
+          <label className="text-xs font-semibold text-ink-soft">
+            Entity
+            <select
+              className="input mt-1"
+              value={auditFilters.entityType}
+              onChange={(e) => updateAuditFilter('entityType', e.target.value)}
+            >
+              <option value="">All entities</option>
+              {['instructor', 'student', 'cohort', 'user', 'message', 'announcement', 'class', 'course', 'setting']
+                .map((entityType) => <option key={entityType} value={entityType}>{entityType}</option>)}
+            </select>
+          </label>
+          <label className="text-xs font-semibold text-ink-soft">
+            From
+            <input
+              className="input mt-1"
+              type="date"
+              value={auditFilters.from}
+              onChange={(e) => updateAuditFilter('from', e.target.value)}
+            />
+          </label>
+          <label className="text-xs font-semibold text-ink-soft">
+            To
+            <input
+              className="input mt-1"
+              type="date"
+              value={auditFilters.to}
+              onChange={(e) => updateAuditFilter('to', e.target.value)}
+            />
+          </label>
+        </div>
         {!audit.data ? <Loading error={audit.error} /> : (
-          <Table
-            rows={audit.data}
-            columns={[
-              { header: 'When', cell: (entry) => new Date(entry.createdAt).toLocaleString() },
-              { header: 'Admin', cell: (entry) => entry.user?.name ?? 'Deleted user' },
-              { header: 'Action', cell: (entry) => <><Badge>{entry.method}</Badge><span className="ml-2 break-all">{entry.path}</span></> },
-              {
-                header: 'Request details',
-                cell: (entry) => entry.body ? (
-                  <details>
-                    <summary className="cursor-pointer text-brand">View</summary>
-                    <pre className="mt-2 max-w-md overflow-auto whitespace-pre-wrap text-xs">{JSON.stringify(entry.body, null, 2)}</pre>
-                  </details>
-                ) : '—',
-              },
-            ]}
-            empty="No administrative changes have been recorded."
-          />
+          <>
+            <Table
+              rows={audit.data.data}
+              columns={[
+                {
+                  header: 'Actor',
+                  cell: (entry) => (
+                    <span>{entry.user?.name ?? (entry.actorId ? 'Deleted user' : 'Unknown actor')}
+                      <span className="ml-1 text-xs text-ink-soft">{entry.actorRole ?? entry.user?.role ?? ''}</span>
+                    </span>
+                  ),
+                },
+                { header: 'Action', cell: (entry) => entry.action ?? 'Legacy event' },
+                {
+                  header: 'Entity',
+                  cell: (entry) => entry.entityType
+                    ? <span>{entry.entityType}{entry.entityId ? <span className="block text-xs text-ink-soft">{entry.entityId}</span> : ''}</span>
+                    : entry.path,
+                },
+                { header: 'Time', cell: (entry) => new Date(entry.createdAt).toLocaleString() },
+                {
+                  header: 'Changes',
+                  cell: (entry) => {
+                    const oldValues = entry.oldValues ?? null;
+                    const newValues = entry.newValues ?? (entry.isLegacy ? entry.body : null);
+                    return oldValues === null && newValues === null ? '—' : (
+                      <details>
+                        <summary className="cursor-pointer text-brand">View changes</summary>
+                        <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                          <div>
+                            <p className="text-xs font-semibold">Old values</p>
+                            <pre className="max-w-md overflow-auto whitespace-pre-wrap text-xs">{JSON.stringify(oldValues, null, 2)}</pre>
+                          </div>
+                          <div>
+                            <p className="text-xs font-semibold">New values</p>
+                            <pre className="max-w-md overflow-auto whitespace-pre-wrap text-xs">{JSON.stringify(newValues, null, 2)}</pre>
+                          </div>
+                        </div>
+                      </details>
+                    );
+                  },
+                },
+              ]}
+              empty="No audit entries match these filters."
+            />
+            <div className="mt-3 flex items-center justify-between text-sm">
+              <span className="text-ink-soft">{audit.data.total} entries</span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  className="btn-ghost"
+                  disabled={auditPage <= 1}
+                  onClick={() => setAuditPage((page) => page - 1)}
+                >
+                  Previous
+                </button>
+                <span>Page {audit.data.page} of {Math.max(1, audit.data.pages)}</span>
+                <button
+                  type="button"
+                  className="btn-ghost"
+                  disabled={auditPage >= audit.data.pages}
+                  onClick={() => setAuditPage((page) => page + 1)}
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          </>
         )}
       </section>
       {open && (
