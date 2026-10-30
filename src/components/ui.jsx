@@ -13,7 +13,7 @@ const toneOf = (s = '') => {
   s = s.toLowerCase();
   if (['active', 'paid', 'present', 'approved', 'graduated'].includes(s)) return 'ok';
   if (['suspended', 'absent', 'overdue', 'rejected'].includes(s)) return 'bad';
-  if (['pending', 'late', 'partial', 'unpaid', 'deferred', 'excused'].includes(s)) return 'warn';
+  if (['pending', 'late', 'partial', 'unpaid', 'deferred', 'excused', 'due soon', 'submitted late'].includes(s)) return 'warn';
   return 'info';
 };
 

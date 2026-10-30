@@ -18,6 +18,8 @@ export default function Calendar() {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [reminderError, setReminderError] = useState('');
+  const [savingReminder, setSavingReminder] = useState('');
 
   const range = useMemo(() => ({
     from: new Date(month.getFullYear(), month.getMonth(), 1).toISOString(),
@@ -63,10 +65,32 @@ export default function Calendar() {
     setMonth(new Date(now.getFullYear(), now.getMonth(), 1));
     setSelectedDate(now);
   };
+  const toggleReminder = async (event) => {
+    const eventType = event.type === 'class' ? 'CLASS' : 'ASSIGNMENT';
+    setSavingReminder(event.id);
+    try {
+      if (event.hasReminder) {
+        await api.del(`/calendar/reminders/${eventType}/${event.eventId}`);
+      } else {
+        await api.post('/calendar/reminders', { eventType, eventId: event.eventId });
+      }
+      setEvents((current) => current.map((item) => item.id === event.id
+        ? { ...item, hasReminder: !event.hasReminder }
+        : item));
+      setReminderError('');
+    } catch (requestError) {
+      setReminderError(requestError.message);
+    } finally {
+      setSavingReminder('');
+    }
+  };
 
   return (
     <>
       <PageHeader title="Calendar" />
+      <p className="mb-4 -mt-4 text-sm text-ink-soft">
+        Set personal in-app reminders for classes and assignment deadlines, about one hour beforehand.
+      </p>
       <section className="card">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2">
@@ -134,13 +158,25 @@ export default function Calendar() {
                         </p>
                       </div>
                     </div>
-                    {event.type === 'class' && event.meetingUrl
-                      ? <a className="inline-flex items-center gap-1 text-sm font-semibold text-brand" href={event.meetingUrl} target="_blank" rel="noreferrer noopener">Join <ExternalLink size={14} /></a>
-                      : <Link className="text-sm font-semibold text-brand" to={event.type === 'class' ? '/classes' : '/assignments'}>View</Link>}
+                    <div className="flex items-center gap-3">
+                      {event.type === 'class' && event.meetingUrl
+                        ? <a className="inline-flex items-center gap-1 text-sm font-semibold text-brand" href={event.meetingUrl} target="_blank" rel="noreferrer noopener">Join <ExternalLink size={14} /></a>
+                        : <Link className="text-sm font-semibold text-brand" to={event.type === 'class' ? '/classes' : '/assignments'}>View</Link>}
+                      <button
+                        type="button"
+                        className="text-sm font-medium text-brand disabled:cursor-not-allowed disabled:opacity-50"
+                        disabled={new Date(event.date) <= new Date() || savingReminder === event.id}
+                        aria-pressed={event.hasReminder}
+                        onClick={() => toggleReminder(event)}
+                      >
+                        {savingReminder === event.id ? 'Saving…' : event.hasReminder ? 'Cancel reminder' : 'Remind me'}
+                      </button>
+                    </div>
                   </li>
                 ))}
               </ul>
             ) : <p className="text-sm text-ink-soft">No classes or assignment deadlines on this day.</p>}
+          {reminderError && <p role="alert" className="mt-3 text-sm text-red-600">{reminderError}</p>}
         </div>
       </section>
     </>

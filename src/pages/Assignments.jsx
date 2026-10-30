@@ -4,6 +4,23 @@ import { api } from '../lib/api.js';
 import { Badge, Field, Loading, Modal, Notice, PageHeader, Select, Table, TextArea, useFetch } from '../components/ui.jsx';
 import { errMsg, fmtDate } from '../lib/format.js';
 
+function assignmentStatus(assignment, staff) {
+  const now = Date.now();
+  const due = assignment.dueDate ? new Date(assignment.dueDate).getTime() : null;
+  const dueSoon = due !== null && due > now && due - now <= 48 * 60 * 60 * 1000;
+
+  if (!staff && assignment.submission) {
+    if (assignment.submission.score != null) return 'Graded';
+    return due && new Date(assignment.submission.submittedAt).getTime() > due
+      ? 'Submitted late'
+      : 'Submitted';
+  }
+  if (due === null) return staff ? 'No deadline' : 'Pending';
+  if (due < now) return 'Overdue';
+  if (dueSoon) return 'Due soon';
+  return staff ? 'Scheduled' : 'Pending';
+}
+
 function Grading({ assignment, onClose }) {
   const { data, error, reload } = useFetch(`/assignments/${assignment.id}/submissions`);
   const [grade, setGrade] = useState({});
@@ -82,6 +99,7 @@ export default function Assignments() {
       <Table rows={data} columns={[
         { header: 'Title', cell: (a) => <><p className="font-medium">{a.title}</p><p className="text-xs text-ink-soft">{a.description}</p></> },
         { header: 'Due', cell: (a) => fmtDate(a.dueDate) },
+        { header: 'Status', cell: (a) => <Badge>{assignmentStatus(a, staff)}</Badge> },
         { header: 'Max', cell: (a) => a.maxScore },
         staff
           ? { header: 'Submissions', cell: (a) => `${a._count.submissions} (${a.graded} graded)` }

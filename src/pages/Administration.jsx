@@ -27,6 +27,7 @@ const SETTINGS = [
 export default function Administration() {
   const users = useFetch('/admin/users');
   const settings = useFetch('/admin/settings');
+  const audit = useFetch('/admin/audit-logs?limit=50');
   const [values, setValues] = useState({});
   const [saved, setSaved] = useState({ text: '', error: false });
   const [open, setOpen] = useState(false);
@@ -188,6 +189,35 @@ export default function Administration() {
           },
         ]}
       />
+      <section className="mt-10">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-semibold">Recent admin activity</h2>
+            <p className="text-sm text-ink-soft">Latest 50 administrative changes.</p>
+          </div>
+          <button type="button" className="btn-ghost" onClick={audit.reload}>Refresh</button>
+        </div>
+        {!audit.data ? <Loading error={audit.error} /> : (
+          <Table
+            rows={audit.data}
+            columns={[
+              { header: 'When', cell: (entry) => new Date(entry.createdAt).toLocaleString() },
+              { header: 'Admin', cell: (entry) => entry.user?.name ?? 'Deleted user' },
+              { header: 'Action', cell: (entry) => <><Badge>{entry.method}</Badge><span className="ml-2 break-all">{entry.path}</span></> },
+              {
+                header: 'Request details',
+                cell: (entry) => entry.body ? (
+                  <details>
+                    <summary className="cursor-pointer text-brand">View</summary>
+                    <pre className="mt-2 max-w-md overflow-auto whitespace-pre-wrap text-xs">{JSON.stringify(entry.body, null, 2)}</pre>
+                  </details>
+                ) : '—',
+              },
+            ]}
+            empty="No administrative changes have been recorded."
+          />
+        )}
+      </section>
       {open && (
         <Modal title="Add staff user" onClose={() => setOpen(false)}>
           <form onSubmit={createUser}>

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../lib/auth.jsx';
 import { api } from '../lib/api.js';
-import { Field, Loading, PageHeader, useFetch } from '../components/ui.jsx';
+import { Badge, Field, Loading, PageHeader, useFetch } from '../components/ui.jsx';
 import Avatar from '../components/Avatar.jsx';
 
 export default function Announcements() {
@@ -10,6 +10,7 @@ export default function Announcements() {
   const staff = user.role !== 'STUDENT';
   const { data: cohorts, error: cohortsError } = useFetch(staff ? '/cohorts' : null);
   const [form, setForm] = useState({ title: '', body: '', cohortId: '' });
+  const [errorMessage, setErrorMessage] = useState('');
 
   const post = async (e) => {
     e.preventDefault();
@@ -21,11 +22,21 @@ export default function Announcements() {
     reload();
   };
   const remove = async (id) => { await api.del(`/announcements/${id}`); reload(); };
+  const markRead = async (id) => {
+    try {
+      await api.post(`/announcements/${id}/read`, {});
+      setErrorMessage('');
+      reload();
+    } catch (error) {
+      setErrorMessage(error.message);
+    }
+  };
 
   if (!data) return <Loading error={error} />;
   return (
     <>
       <PageHeader title="Announcements" />
+      {errorMessage && <p role="alert" className="mb-4 text-sm text-red-600">{errorMessage}</p>}
       {staff && (
         <form onSubmit={post} className="card mb-6 max-w-xl">
           <Field label="Title" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required />
@@ -54,8 +65,14 @@ export default function Announcements() {
         {data.map((a) => (
           <div key={a.id} className="card">
             <div className="flex justify-between gap-2">
-              <h3 className="font-semibold">{a.title}</h3>
-              {user.role === 'ADMIN' && <button className="text-sm text-red-600" onClick={() => remove(a.id)}>Delete</button>}
+              <div className="flex items-start gap-2">
+                <h3 className="font-semibold">{a.title}</h3>
+                <Badge>{a.isRead ? 'READ' : 'NEW'}</Badge>
+              </div>
+              <div className="flex shrink-0 gap-3">
+                {!a.isRead && <button className="text-sm font-medium text-brand" onClick={() => markRead(a.id)}>Mark read</button>}
+                {user.role === 'ADMIN' && <button className="text-sm text-red-600" onClick={() => remove(a.id)}>Delete</button>}
+              </div>
             </div>
             <p className="mt-1 text-sm">{a.body}</p>
             <div className="mt-3 flex items-center gap-2.5">

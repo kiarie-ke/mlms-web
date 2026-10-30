@@ -29,6 +29,7 @@ function Student() {
 
 function Staff() {
   const sessions = useFetch('/attendance/sessions');
+  const summary = useFetch('/attendance/summary');
   const cohorts = useFetch('/cohorts');
   const students = useFetch('/students');
   const [create, setCreate] = useState(false);
@@ -60,6 +61,26 @@ function Staff() {
           New class session
         </button>
       </PageHeader>
+      {summary.data?.students.length > 0 && (
+        <section className="card mb-5 border-amber/40 bg-amber/5">
+          <div className="mb-3">
+            <h2 className="font-semibold">Attendance follow-up</h2>
+            <p className="text-sm text-ink-soft">
+              {summary.data.students.length} student{summary.data.students.length === 1 ? '' : 's'} below {summary.data.threshold}% attendance.
+            </p>
+          </div>
+          <Table
+            rows={summary.data.students}
+            columns={[
+              { header: 'Student', cell: (student) => student.name },
+              { header: 'Cohort(s)', cell: (student) => student.cohortNames.join(', ') },
+              { header: 'Attendance', cell: (student) => <Badge>{student.percent}%</Badge> },
+              { header: 'Classes marked', cell: (student) => `${student.attended}/${student.total}` },
+            ]}
+          />
+        </section>
+      )}
+      {summary.error && <p role="alert" className="mb-4 text-sm text-red-600">Could not load attendance alerts: {summary.error}</p>}
       <Table
         rows={sessions.data}
         columns={[
