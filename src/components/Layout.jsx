@@ -200,7 +200,11 @@ export default function Layout() {
             {hasNotifications && (
               <Link to="/notifications" aria-label={unread ? `${unread} unread notifications` : 'Notifications'} className="relative grid h-10 w-10 place-items-center rounded-xl border border-line bg-white text-ink-soft transition hover:border-brand/30 hover:text-brand">
                 <Bell size={18} />
-                {unread > 0 && <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white" />}
+                {unread > 0 && (
+                  <span className="absolute -right-1 -top-1 min-w-4 rounded-full bg-red-600 px-1 text-center text-[10px] font-bold leading-4 text-white">
+                    {unread > 99 ? '99+' : unread}
+                  </span>
+                )}
               </Link>
             )}
             {hasMessages && (

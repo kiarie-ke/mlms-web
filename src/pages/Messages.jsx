@@ -4,7 +4,7 @@ import { useAuth } from '../lib/auth.jsx';
 import { Loading, PageHeader } from '../components/ui.jsx';
 import { fmtDateTime } from '../lib/format.js';
 import Avatar from '../components/Avatar.jsx';
-import { Check, CheckCheck, Users } from 'lucide-react';
+import { Check, CheckCheck, Reply, Users, X } from 'lucide-react';
 
 function presenceLabel(contact) {
   if (contact.online) return 'Online';
@@ -18,6 +18,80 @@ function presenceLabel(contact) {
   })}`;
 }
 
+function ChatMessage({ message, isCohort, own, sender, user, onReply }) {
+  const swipeStart = useRef(null);
+  const quotedSender = isCohort ? message.replyTo?.sender : message.replyTo?.from;
+  const reply = () => onReply(message, own ? user.name : sender.name);
+  const onTouchStart = (event) => {
+    const touch = event.touches[0];
+    swipeStart.current = { x: touch.clientX, y: touch.clientY };
+  };
+  const onTouchEnd = (event) => {
+    const start = swipeStart.current;
+    const touch = event.changedTouches[0];
+    swipeStart.current = null;
+    if (start && touch && touch.clientX - start.x > 72 && Math.abs(touch.clientY - start.y) < 48) reply();
+  };
+  const quotedMessage = message.replyTo;
+
+  return (
+    <div className={`group flex items-end gap-2 ${own ? 'justify-end' : ''}`}>
+      {!own && <Avatar user={sender} size="h-8 w-8" className="text-[10px]" online={sender.online} />}
+      <div
+        id={`chat-message-${message.id}`}
+        className={`max-w-[75%] rounded-lg px-3 py-2 text-sm ${own ? 'bg-brand text-white' : 'bg-offwhite'}`}
+        onTouchStart={onTouchStart}
+        onTouchEnd={onTouchEnd}
+        style={{ touchAction: 'pan-y' }}
+      >
+        {isCohort && !own && <p className="mb-1 text-xs font-semibold">{sender.name}</p>}
+        {quotedMessage && (
+          <button
+            type="button"
+            onClick={() => document.getElementById(`chat-message-${quotedMessage.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
+            className={`mb-2 block w-full rounded border-l-2 px-2 py-1 text-left ${own ? 'border-white/70 bg-white/10' : 'border-brand bg-white'}`}
+          >
+            <span className={`block text-xs font-semibold ${own ? 'text-white' : 'text-brand'}`}>{quotedSender?.name ?? 'Message'}</span>
+            <span className="block truncate text-xs">{quotedMessage.body}</span>
+          </button>
+        )}
+        <p className="whitespace-pre-wrap break-words">{message.body}</p>
+        <p className={`mt-1 flex items-center justify-end gap-1 text-[10px] ${own ? 'text-white/70' : 'text-ink-soft'}`}>
+          {fmtDateTime(message.createdAt)}
+          {!isCohort && own && (message.readAt
+            ? <CheckCheck size={13} aria-label="Seen" title="Seen" className="text-cyan-100" />
+            : <Check size={13} aria-label="Sent, not yet read" title="Sent, not yet read" />)}
+        </p>
+      </div>
+      <button
+        type="button"
+        onClick={reply}
+        aria-label={`Reply to ${sender.name}'s message`}
+        title="Reply"
+        className="mb-1 rounded-full p-1.5 text-ink-soft transition hover:bg-brand/10 hover:text-brand"
+      >
+        <Reply size={16} />
+      </button>
+      {own && <Avatar user={user} size="h-8 w-8" className="text-[10px]" />}
+    </div>
+  );
+}
+
+function ReplyPreview({ target, onCancel }) {
+  if (!target) return null;
+  return (
+    <div className="flex items-center justify-between gap-3 border-t border-line bg-offwhite px-4 py-2">
+      <div className="min-w-0 border-l-2 border-brand pl-2">
+        <p className="text-xs font-semibold text-brand">Replying to {target.author}</p>
+        <p className="truncate text-sm text-ink-soft">{target.body}</p>
+      </div>
+      <button type="button" onClick={onCancel} aria-label="Cancel reply" className="rounded-full p-1.5 text-ink-soft hover:bg-white hover:text-ink">
+        <X size={16} />
+      </button>
+    </div>
+  );
+}
+
 export default function Messages() {
   const { user } = useAuth();
   const [contacts, setContacts] = useState(null);
@@ -26,6 +100,7 @@ export default function Messages() {
   const [activeCohort, setActiveCohort] = useState(null);
   const [thread, setThread] = useState([]);
   const [cohortThread, setCohortThread] = useState([]);
+  const [replyTarget, setReplyTarget] = useState(null);
   const [text, setText] = useState('');
   const [q, setQ] = useState('');
   const [error, setError] = useState('');
@@ -57,6 +132,8 @@ export default function Messages() {
   const loadCohortThread = useCallback(async (id) => {
     try {
       setCohortThread(await api.get(`/messages/cohorts/${id}`));
+      setCohortChats((current) => current?.map((cohort) => (cohort.id === id ? { ...cohort, unread: 0 } : cohort)));
+      window.dispatchEvent(new Event('messages-read'));
       return true;
     } catch (loadError) {
       setError(loadError.message);
@@ -116,15 +193,17 @@ export default function Messages() {
     if (!text.trim()) return;
     try {
       if (activeCohort) {
-        await api.post(`/messages/cohorts/${activeCohort.id}`, { body: text });
+        await api.post(`/messages/cohorts/${activeCohort.id}`, { body: text, replyToId: replyTarget?.id });
         loadCohortThread(activeCohort.id);
       } else {
-        await api.post('/messages', { toId: active.id, body: text });
+        await api.post('/messages', { toId: active.id, body: text, replyToId: replyTarget?.id });
         loadThread(active.id);
       }
       setText('');
+      setReplyTarget(null);
     } catch (err) { setError(err.message); }
   };
+  const beginReply = (message, author) => setReplyTarget({ id: message.id, body: message.body, author });
 
   if (!contacts || !cohortChats) return <Loading error={error} />;
   const list = contacts.filter((c) => c.name.toLowerCase().includes(q.toLowerCase()));
@@ -148,6 +227,7 @@ export default function Messages() {
                         setActiveCohort(c);
                         setThread([]);
                         setCohortThread([]);
+                        setReplyTarget(null);
                         setError('');
                       }}
                       className={`flex w-full items-center gap-3 rounded-xl px-2 py-2 text-left text-sm ${activeCohort?.id === c.id ? 'bg-brand/10' : 'hover:bg-offwhite'}`}
@@ -157,6 +237,7 @@ export default function Messages() {
                         <span className="block truncate font-medium">{c.name}</span>
                         <span className="text-xs text-ink-soft">{c.studentCount} students</span>
                       </span>
+                      {c.unread > 0 && <span className="rounded-full bg-brand px-2 py-0.5 text-xs font-semibold text-white">{c.unread > 99 ? '99+' : c.unread}</span>}
                     </button>
                   </li>
                 ))}
@@ -173,13 +254,14 @@ export default function Messages() {
                       setActive(c);
                       setThread([]);
                       setCohortThread([]);
+                      setReplyTarget(null);
                       setError('');
                       setContacts((cs) => cs.map((x) => (x.id === c.id ? { ...x, unread: 0 } : x)));
                     }}
                     className="flex min-w-0 flex-1 items-center justify-between text-left"
                   >
                     <span className="min-w-0"><span className="block truncate font-medium">{c.name}</span><span className="text-xs text-ink-soft">{c.role.toLowerCase()} · {presenceLabel(c)}</span></span>
-                    {c.unread > 0 && <span className="ml-2 rounded-full bg-brand px-2 text-xs text-white">{c.unread}</span>}
+                    {c.unread > 0 && <span className="ml-2 rounded-full bg-brand px-2 text-xs text-white">{c.unread > 99 ? '99+' : c.unread}</span>}
                   </button>
                 </div>
               </li>
@@ -199,21 +281,20 @@ export default function Messages() {
               </div>
               <div ref={threadPane} className="min-h-0 flex-1 space-y-2 overflow-y-auto p-4">
                 {cohortThread.map((m) => (
-                  <div key={m.id} className={`flex items-end gap-2 ${m.senderId === user.id ? 'justify-end' : ''}`}>
-                    {m.senderId !== user.id && <Avatar user={m.sender} size="h-8 w-8" className="text-[10px]" />}
-                    <div className={`max-w-[75%] rounded-lg px-3 py-2 text-sm ${m.senderId === user.id ? 'bg-brand text-white' : 'bg-offwhite'}`}>
-                      {m.senderId !== user.id && <p className="mb-1 text-xs font-semibold">{m.sender.name}</p>}
-                      <p className="whitespace-pre-wrap break-words">{m.body}</p>
-                      <p className={`mt-1 flex items-center justify-end text-[10px] ${m.senderId === user.id ? 'text-white/70' : 'text-ink-soft'}`}>
-                        {fmtDateTime(m.createdAt)}
-                      </p>
-                    </div>
-                    {m.senderId === user.id && <Avatar user={user} size="h-8 w-8" className="text-[10px]" />}
-                  </div>
+                  <ChatMessage
+                    key={m.id}
+                    message={m}
+                    isCohort
+                    own={m.senderId === user.id}
+                    sender={m.sender}
+                    user={user}
+                    onReply={beginReply}
+                  />
                 ))}
                 {!cohortThread.length && <p className="py-4 text-center text-sm text-ink-soft">Start the conversation with your cohort.</p>}
               </div>
-              <form onSubmit={send} className="flex gap-2 border-t border-line p-3">
+              <ReplyPreview target={replyTarget} onCancel={() => setReplyTarget(null)} />
+              <form onSubmit={send} className={`flex gap-2 p-3 ${replyTarget ? '' : 'border-t border-line'}`}>
                 <input className="input" placeholder="Message your cohort…" value={text} onChange={(e) => setText(e.target.value)} maxLength={4000} />
                 <button className="btn-primary">Send</button>
               </form>
@@ -226,22 +307,18 @@ export default function Messages() {
               </div>
               <div ref={threadPane} className="min-h-0 flex-1 space-y-2 overflow-y-auto p-4">
                 {thread.map((m) => (
-                  <div key={m.id} className={`flex items-end gap-2 ${m.fromId === user.id ? 'justify-end' : ''}`}>
-                    {m.fromId !== user.id && <Avatar user={active} size="h-8 w-8" className="text-[10px]" online={active.online} />}
-                    <div className={`max-w-[75%] rounded-lg px-3 py-2 text-sm ${m.fromId === user.id ? 'bg-brand text-white' : 'bg-offwhite'}`}>
-                      <p className="whitespace-pre-wrap break-words">{m.body}</p>
-                      <p className={`mt-1 flex items-center justify-end gap-1 text-[10px] ${m.fromId === user.id ? 'text-white/70' : 'text-ink-soft'}`}>
-                        {fmtDateTime(m.createdAt)}
-                        {m.fromId === user.id && (m.readAt
-                          ? <CheckCheck size={13} aria-label="Seen" title="Seen" className="text-cyan-100" />
-                          : <Check size={13} aria-label="Sent, not yet read" title="Sent, not yet read" />)}
-                      </p>
-                    </div>
-                    {m.fromId === user.id && <Avatar user={user} size="h-8 w-8" className="text-[10px]" />}
-                  </div>
+                  <ChatMessage
+                    key={m.id}
+                    message={m}
+                    own={m.fromId === user.id}
+                    sender={active}
+                    user={user}
+                    onReply={beginReply}
+                  />
                 ))}
               </div>
-              <form onSubmit={send} className="flex gap-2 border-t border-line p-3">
+              <ReplyPreview target={replyTarget} onCancel={() => setReplyTarget(null)} />
+              <form onSubmit={send} className={`flex gap-2 p-3 ${replyTarget ? '' : 'border-t border-line'}`}>
                 <input className="input" placeholder="Type a message…" value={text} onChange={(e) => setText(e.target.value)} maxLength={2000} />
                 <button className="btn-primary">Send</button>
               </form>
