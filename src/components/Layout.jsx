@@ -159,7 +159,7 @@ export default function Layout() {
           ))}
         </nav>
         <div className={`m-3 rounded-2xl border border-white/10 bg-white/[0.04] p-3 ${sidebarCollapsed ? 'lg:m-2 lg:p-2' : ''}`}>
-          <div className="flex min-w-0 items-center gap-3 rounded-xl p-2">
+          <div className={`flex min-w-0 items-center gap-3 rounded-xl p-2 ${sidebarCollapsed ? 'lg:justify-center lg:gap-0 lg:p-0' : ''}`}>
             <Avatar user={user} size="h-10 w-10" className="text-sm" />
             <Link to="/account" aria-label="Account" onClick={() => setOpen(false)} className={`min-w-0 flex-1 rounded-lg hover:opacity-80 ${sidebarCollapsed ? 'lg:hidden' : ''}`}>
               <span className="block truncate text-sm font-semibold text-white">{user.name}</span>
