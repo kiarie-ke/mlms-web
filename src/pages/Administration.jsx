@@ -68,6 +68,18 @@ export default function Administration() {
       window.alert(errMsg(err));
     }
   };
+  const deleteUser = async (u) => {
+    const dataWarning = u.role === 'STUDENT'
+      ? ' Their student profile and academic records will also be deleted.'
+      : '';
+    if (!window.confirm(`Permanently delete ${u.name}?${dataWarning} This cannot be undone.`)) return;
+    try {
+      await api.del(`/admin/users/${u.id}`);
+      users.reload();
+    } catch (err) {
+      window.alert(errMsg(err));
+    }
+  };
   const reset = async (u) => {
     if (!window.confirm(`Reset password for ${u.name}?`)) return;
     try {
@@ -161,12 +173,15 @@ export default function Administration() {
           {
             header: 'Actions',
             cell: (u) => (
-              <div className="flex gap-3 text-sm">
+              <div className="flex flex-wrap gap-3 text-sm">
                 <button className="text-brand" onClick={() => toggle(u)}>
                   {u.active ? 'Deactivate' : 'Activate'}
                 </button>
                 <button className="text-brand" onClick={() => reset(u)}>
                   Reset password
+                </button>
+                <button className="text-red-600" onClick={() => deleteUser(u)}>
+                  Delete
                 </button>
               </div>
             ),
