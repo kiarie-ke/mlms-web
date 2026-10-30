@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useAuth } from '../lib/auth.jsx';
 import { api } from '../lib/api.js';
 import { Badge, Field, Loading, Modal, Notice, PageHeader, Select, Table, useFetch } from '../components/ui.jsx';
-import { errMsg } from '../lib/format.js';
+import { errMsg, fmtDate } from '../lib/format.js';
 
 const STATUSES = ['ACTIVE', 'SUSPENDED', 'GRADUATED', 'DEFERRED'];
 const empty = { name: '', email: '', phone: '', cohortId: '' };
@@ -11,6 +11,7 @@ export default function Students() {
   const { user } = useAuth();
   const admin = user.role === 'ADMIN';
   const { data, error, reload } = useFetch('/students');
+  const atRisk = useFetch('/students/at-risk');
   const cohorts = useFetch('/cohorts');
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(empty);
@@ -70,6 +71,51 @@ export default function Students() {
         {admin && cohortFilter && <button className="btn-ghost" onClick={autoAssign}>Split evenly</button>}
         {admin && <button className="btn-primary" onClick={() => { setMsg({ text: '' }); setOpen(true); }}>Add student</button>}
       </PageHeader>
+      <section className="mb-8" aria-labelledby="student-follow-up-heading">
+        <div className="mb-3">
+          <h2 id="student-follow-up-heading" className="font-display text-lg font-bold text-ink">Students needing follow-up</h2>
+          <p className="mt-1 text-xs text-ink-soft">
+            Active students with attendance below 75%, overdue assignments, or a recent grade decline.
+          </p>
+        </div>
+        {!atRisk.data ? <Loading error={atRisk.error} /> : atRisk.data.length ? (
+          <div className="grid gap-3 lg:grid-cols-2">
+            {atRisk.data.map((student) => (
+              <article key={student.studentId} className="rounded-2xl border border-line bg-white p-4 shadow-sm">
+                <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
+                  <div>
+                    <h3 className="font-semibold text-ink">{student.name}</h3>
+                    <p className="text-xs text-ink-soft">{student.admissionNo} · {student.cohortName}</p>
+                  </div>
+                </div>
+                <ul className="space-y-2 text-sm">
+                  {student.attendance && student.attendance.percent < 75 && (
+                    <li className="rounded-xl bg-red-50 px-3 py-2 text-red-800">
+                      Attendance is {student.attendance.percent}% ({student.attendance.attended}/{student.attendance.total} attended); follow-up threshold is 75%.
+                    </li>
+                  )}
+                  {student.overdueAssignments.map((assignment) => (
+                    <li key={assignment.id} className="rounded-xl bg-amber-50 px-3 py-2 text-amber-900">
+                      <span className="font-semibold">Overdue:</span> {assignment.title}
+                      {assignment.dueDate && <span className="text-xs"> · due {fmtDate(assignment.dueDate)}</span>}
+                    </li>
+                  ))}
+                  {student.gradeTrend && (
+                    <li className="rounded-xl bg-amber-50 px-3 py-2 text-amber-900">
+                      Grades declined {student.gradeTrend.drop} points: recent average {student.gradeTrend.recentAverage}%,
+                      previously {student.gradeTrend.previousAverage}%.
+                    </li>
+                  )}
+                </ul>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <p className="rounded-2xl border border-emerald/20 bg-emerald/5 p-4 text-sm text-emerald">
+            No active students currently meet the follow-up criteria.
+          </p>
+        )}
+      </section>
       {admin && sel.length > 0 && (
         <div className="mb-3 flex flex-wrap items-center gap-2 rounded border border-line bg-white p-3 text-sm">
           <span>{sel.length} selected</span>
