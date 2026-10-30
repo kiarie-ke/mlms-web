@@ -14,7 +14,7 @@ export default function Instructors() {
     e.preventDefault();
     try {
       const r = await api.post('/instructors', form);
-      setMsg({ text: `Created. Temporary password (share it once): ${r.temporaryPassword}`, error: false });
+      setMsg({ text: `Created. Default password (must be changed on first sign-in): ${r.temporaryPassword}`, error: false });
       setForm({ name: '', email: '' });
       reload();
     } catch (err) { setMsg({ text: errMsg(err), error: true }); }

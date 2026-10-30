@@ -52,7 +52,7 @@ export default function Administration() {
     try {
       const r = await api.post('/admin/users', form);
       setCreated({
-        text: `Created. Temporary password (share it once): ${r.temporaryPassword}`,
+        text: `Created. Default password (must be changed on first sign-in): ${r.temporaryPassword}`,
         error: false,
       });
       users.reload();
