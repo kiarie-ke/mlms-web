@@ -20,6 +20,10 @@ export default function Instructors() {
     } catch (err) { setMsg({ text: errMsg(err), error: true }); }
   };
   const toggle = async (i) => { await api.patch(`/instructors/${i.id}`, { active: !i.active }); reload(); };
+  const remove = async (i) => {
+    if (!window.confirm(`Delete instructor ${i.name}? This cannot be undone.`)) return;
+    try { await api.del(`/instructors/${i.id}`); reload(); } catch (err) { window.alert(errMsg(err)); }
+  };
   const assign = async (i, cohortId, on) => {
     const ids = new Set(i.teaching.map((t) => t.id));
     on ? ids.add(cohortId) : ids.delete(cohortId);
@@ -44,7 +48,12 @@ export default function Instructors() {
             ))}
           </div>
         ) },
-        { header: '', cell: (i) => <button className="btn-ghost" onClick={() => toggle(i)}>{i.active ? 'Deactivate' : 'Activate'}</button> },
+        { header: '', cell: (i) => (
+          <div className="flex gap-2">
+            <button className="btn-ghost" onClick={() => toggle(i)}>{i.active ? 'Deactivate' : 'Activate'}</button>
+            <button className="btn-ghost text-red-600" onClick={() => remove(i)}>Delete</button>
+          </div>
+        ) },
       ]} />
       {open && (
         <Modal title="Add instructor" onClose={() => setOpen(false)}>
