@@ -5,7 +5,28 @@ import { useAuth } from '../lib/auth.jsx';
 import { navItems } from '../lib/nav.js';
 import { api } from '../lib/api.js';
 import Avatar from './Avatar.jsx';
+import { Modal } from './ui.jsx';
 import packageJson from '../../package.json';
+
+const INSTALL_PROMPT_DISMISSED_KEY = 'mlms-install-prompt-dismissed';
+
+function isIOSDevice() {
+  return /iPhone|iPad|iPod/.test(navigator.userAgent)
+    || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+}
+
+function isInstalledApp() {
+  return window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+}
+
+function hasDismissedInstallPrompt() {
+  try {
+    return window.localStorage.getItem(INSTALL_PROMPT_DISMISSED_KEY) === 'true';
+  } catch (error) {
+    console.error('Could not read install prompt preference', error);
+    return false;
+  }
+}
 
 export default function Layout() {
   const { user, logout } = useAuth();
@@ -16,6 +37,8 @@ export default function Layout() {
   const [open, setOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [installEvt, setInstallEvt] = useState(null);
+  const [installPromptOpen, setInstallPromptOpen] = useState(false);
+  const [isIOS, setIsIOS] = useState(false);
   const items = navItems(user.role);
   const currentPage = items.find(({ to }) => (
     to === '/' ? location.pathname === '/' : location.pathname === to || location.pathname.startsWith(`${to}/`)
@@ -23,11 +46,51 @@ export default function Layout() {
   const hasNotifications = items.some(({ key }) => key === 'notifications');
   const hasMessages = items.some(({ key }) => key === 'messages');
   useEffect(() => {
-    const h = (e) => { e.preventDefault(); setInstallEvt(e); };
-    window.addEventListener('beforeinstallprompt', h);
-    return () => window.removeEventListener('beforeinstallprompt', h);
+    const iosInstallAvailable = isIOSDevice() && !isInstalledApp();
+    setIsIOS(iosInstallAvailable);
+    if (iosInstallAvailable && !hasDismissedInstallPrompt()) {
+      const timer = window.setTimeout(() => setInstallPromptOpen(true), 2000);
+      return () => window.clearTimeout(timer);
+    }
+    return undefined;
   }, []);
-  const install = async () => { installEvt.prompt(); await installEvt.userChoice; setInstallEvt(null); };
+  useEffect(() => {
+    const onBeforeInstallPrompt = (event) => {
+      event.preventDefault();
+      setInstallEvt(event);
+      if (!isInstalledApp() && !hasDismissedInstallPrompt()) setInstallPromptOpen(true);
+    };
+    const onAppInstalled = () => {
+      setInstallEvt(null);
+      setInstallPromptOpen(false);
+    };
+    window.addEventListener('beforeinstallprompt', onBeforeInstallPrompt);
+    window.addEventListener('appinstalled', onAppInstalled);
+    return () => {
+      window.removeEventListener('beforeinstallprompt', onBeforeInstallPrompt);
+      window.removeEventListener('appinstalled', onAppInstalled);
+    };
+  }, []);
+  const dismissInstallPrompt = () => {
+    setInstallPromptOpen(false);
+    try {
+      window.localStorage.setItem(INSTALL_PROMPT_DISMISSED_KEY, 'true');
+    } catch (error) {
+      console.error('Could not save install prompt preference', error);
+    }
+  };
+  const install = async () => {
+    if (!installEvt) return;
+    try {
+      await installEvt.prompt();
+      const choice = await installEvt.userChoice;
+      setInstallEvt(null);
+      if (choice.outcome === 'accepted') setInstallPromptOpen(false);
+      else dismissInstallPrompt();
+    } catch (error) {
+      console.error('Could not launch the app install prompt', error);
+    }
+  };
   useEffect(() => {
     const loadUnreadMessages = () => {
       api.get('/messages/unread-count')
@@ -103,8 +166,8 @@ export default function Layout() {
               <span className="mt-0.5 block text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">{user.role}</span>
             </Link>
           </div>
-          {installEvt && (
-            <button onClick={install} aria-label="Install app" title={sidebarCollapsed ? 'Install app' : undefined} className={`mt-2 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-cyan transition hover:bg-white/[0.06] hover:text-white ${sidebarCollapsed ? 'lg:justify-center lg:px-0' : ''}`}>
+          {(installEvt || isIOS) && (
+            <button onClick={() => setInstallPromptOpen(true)} aria-label="Install app" title={sidebarCollapsed ? 'Install app' : undefined} className={`mt-2 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-cyan transition hover:bg-white/[0.06] hover:text-white ${sidebarCollapsed ? 'lg:justify-center lg:px-0' : ''}`}>
               <Download className="shrink-0" size={16} /> <span className={sidebarCollapsed ? 'lg:hidden' : ''}>Install app</span>
             </button>
           )}
@@ -167,6 +230,41 @@ export default function Layout() {
           <Outlet />
         </div>
       </main>
+      {installPromptOpen && (
+        <Modal title="Install MODARA LMS" onClose={dismissInstallPrompt}>
+          <div className="mb-5 flex items-center gap-3">
+            <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-brand/10 text-brand">
+              <Download size={22} />
+            </span>
+            <div>
+              <p className="font-semibold text-ink">Your learning workspace, one tap away.</p>
+              <p className="mt-1 text-sm text-ink-soft">Add MODARA to your home screen for quick access.</p>
+            </div>
+          </div>
+          {installEvt ? (
+            <div className="space-y-3">
+              <button onClick={install} className="btn-primary w-full">
+                Install app <Download size={16} />
+              </button>
+              <button onClick={dismissInstallPrompt} className="btn-ghost w-full">Maybe later</button>
+            </div>
+          ) : isIOS ? (
+            <>
+              <div className="mb-5 rounded-xl bg-slate-50 p-4">
+                <p className="mb-3 text-sm font-semibold text-ink">On iPhone or iPad</p>
+                <ol className="space-y-3 text-sm leading-5 text-ink-soft">
+                  <li className="flex gap-2"><span className="font-bold text-brand">1.</span><span>Tap the <strong className="text-ink">Share</strong> button in your browser.</span></li>
+                  <li className="flex gap-2"><span className="font-bold text-brand">2.</span><span>Choose <strong className="text-ink">Add to Home Screen</strong>.</span></li>
+                  <li className="flex gap-2"><span className="font-bold text-brand">3.</span><span>Tap <strong className="text-ink">Add</strong> to finish.</span></li>
+                </ol>
+              </div>
+              <button onClick={dismissInstallPrompt} className="btn-primary w-full">Got it</button>
+            </>
+          ) : (
+            <button onClick={dismissInstallPrompt} className="btn-ghost w-full">Close</button>
+          )}
+        </Modal>
+      )}
     </div>
   );
 }
