@@ -31,6 +31,10 @@ export default function Cohorts() {
     }
     setForm(next);
   };
+  const remove = async (c) => {
+    if (!window.confirm(`Delete cohort "${c.name}" and its assignments, quizzes, classes and discussions?`)) return;
+    try { await api.del(`/cohorts/${c.id}`); reload(); } catch (err) { window.alert(errMsg(err)); }
+  };
   const assign = async (cohort, instructorId, on) => {
     const inst = instructors.data.find((i) => i.id === instructorId);
     const ids = new Set(inst.teaching.map((t) => t.id));
@@ -58,7 +62,12 @@ export default function Cohorts() {
           { header: 'Starts', cell: (c) => fmtDate(c.startDate) },
           { header: 'Students', cell: (c) => c._count.students },
           { header: 'Instructors', cell: (c) => c.instructors.map((i) => i.name).join(', ') || '—' },
-          ...(admin ? [{ header: '', cell: (c) => <button className="btn-ghost" onClick={() => open('staff', { id: c.id })}>Instructors</button> }] : []),
+          ...(admin ? [{ header: '', cell: (c) => (
+            <div className="flex gap-2">
+              <button className="btn-ghost" onClick={() => open('staff', { id: c.id })}>Instructors</button>
+              <button className="btn-ghost text-red-600" onClick={() => remove(c)}>Delete</button>
+            </div>
+          ) }] : []),
         ]}
       />
 
